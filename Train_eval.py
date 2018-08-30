@@ -5,7 +5,10 @@ import pickle
 from keras.models import Model, load_model
 
 # - plotting, img tools -
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
+
 import numpy as np
 import random
 
@@ -217,7 +220,9 @@ class Generator_evaluation:
 
         cols = ['Original', 'Translated', 'Target']
         best_eval_fig, b_axes_eval = plt.subplots(nrows=number_of_cases, ncols=3)
+        plt.tight_layout()
         worst_eval_fig,w_axes_eval = plt.subplots(nrows=number_of_cases, ncols=3)
+        plt.tight_layout()
 
 
         for ax, col in zip(b_axes_eval[0], cols):
@@ -231,23 +236,35 @@ class Generator_evaluation:
             w_axes_eval[i, 0].imshow(we_A, cmap=plt.gray(), vmin=0, vmax=1)
             w_axes_eval[i, 1].imshow(we_T, cmap=plt.gray(), vmin=0, vmax=1)
             w_axes_eval[i, 2].imshow(we_B, cmap=plt.gray(), vmin=0, vmax=1)
+            w_axes_eval[i, 1].set_xlabel('MAE Loss: ' + str(worst_evals[i][1])[0:6])
+            w_axes_eval[i, 0].set_ylabel('Img: ' + str(worst_evals[i][0]))
             w_axes_eval[i, 0].set_yticklabels([])
             w_axes_eval[i, 0].set_xticklabels([])
             w_axes_eval[i, 1].set_yticklabels([])
             w_axes_eval[i, 1].set_xticklabels([])
+            w_axes_eval[i, 0].set_xticks([])
+            w_axes_eval[i, 0].set_yticks([])
+            w_axes_eval[i, 1].set_xticks([])
+            w_axes_eval[i, 1].set_yticks([])
             w_axes_eval[i, 2].axis('off')
-            w_axes_eval[i, 0].set_ylabel('MAE Loss: ' + str(worst_evals[i][1])[0:6])
+
 
             be_A, be_T, be_B = self.convert_tensor2pic(xA[best_evals[i][0]], best_evals[i][2], xB[best_evals[i][0]])
             b_axes_eval[i, 0].imshow(be_A, cmap=plt.gray(), vmin=0, vmax=1)
             b_axes_eval[i, 1].imshow(be_T, cmap=plt.gray(), vmin=0, vmax=1)
             b_axes_eval[i, 2].imshow(be_B, cmap=plt.gray(), vmin=0, vmax=1)
+            b_axes_eval[i, 1].set_xlabel('MAE Loss: ' + str(best_evals[i][1])[0:6])
+            b_axes_eval[i, 0].set_ylabel('Img: ' + str(best_evals[i][0]))
             b_axes_eval[i, 0].set_yticklabels([])
             b_axes_eval[i, 0].set_xticklabels([])
             b_axes_eval[i, 1].set_yticklabels([])
             b_axes_eval[i, 1].set_xticklabels([])
+            b_axes_eval[i, 0].set_xticks([])
+            b_axes_eval[i, 0].set_yticks([])
+            b_axes_eval[i, 1].set_xticks([])
+            b_axes_eval[i, 1].set_yticks([])
             b_axes_eval[i, 2].axis('off')
-            b_axes_eval[i, 1].set_xlabel('MAE Loss: ' + str(best_evals[i][1])[0:6])
+
 
         path = self.test_path + '/' + str(epoch)
         os.makedirs(path, exist_ok=True)
