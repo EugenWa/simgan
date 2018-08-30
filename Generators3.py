@@ -4,6 +4,7 @@ import os
 import keras
 from keras.layers import Conv2D, Input, Conv2DTranspose, LeakyReLU, Add, Lambda, MaxPooling2D, UpSampling2D, Concatenate
 from keras.models import Model
+CUDA_VISIBLE_DEVICES=0
 
 # - plotting, img tools -
 from matplotlib import pyplot as plt

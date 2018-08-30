@@ -9,6 +9,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
 from keras.layers import Input
 import keras
+CUDA_VISIBLE_DEVICES=0
 
 # - misc -
 import sys

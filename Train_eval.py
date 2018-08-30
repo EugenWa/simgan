@@ -3,6 +3,7 @@ import os
 import pickle
 # - keras -
 from keras.models import Model, load_model
+CUDA_VISIBLE_DEVICES=0
 
 # - plotting, img tools -
 import matplotlib
