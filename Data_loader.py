@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from glob import glob
 
@@ -15,6 +13,9 @@ class Data_Loader:
     def Load_Data_Tensors(self, data_type, invert=True):
         paths_A = glob('./%s/%sA/*' % (self.data_set_name, data_type))
         paths_B = glob('./%s/%sB/*' % (self.data_set_name, data_type))
+
+        paths_A = sorted(paths_A)
+        paths_B = sorted(paths_B)
         img = plt.imread(paths_A[0])
         # crop the image so that the final shape is a square
         img_shapemin = min(img.shape[0], img.shape[1])
