@@ -81,6 +81,12 @@ class Generator_evaluation:
         # transform the domain of the input
         trafo = gen_A_B.predict(choice_A)
 
+        # sclae trafo:
+        t_min = np.min(trafo)
+        t_max = np.max(trafo)
+        t_dist = t_max - t_min
+        trafo = (trafo + t_min) * (1.0 / t_dist)
+
         plt.subplot(132)
         plt.title('Gen Output')
         plt.axis('off')
@@ -125,6 +131,12 @@ class Generator_evaluation:
             # transform the domain of the input
             trafo = gen_A_B.predict(choice_A)
 
+            # sclae trafo:
+            t_min = np.min(trafo)
+            t_max = np.max(trafo)
+            t_dist = t_max - t_min
+            trafo = (trafo + t_min) * (1.0/t_dist)
+
             plt.subplot(132)
             plt.title('Gen Output')
             plt.axis('off')
@@ -148,6 +160,11 @@ class Generator_evaluation:
 
     def convert_tensor2pic(self, choice_A, trafo, choice_B):
         pic_A = choice_A[:, :, 0]
+        # sclae trafo:
+        t_min = np.min(trafo)
+        t_max = np.max(trafo)
+        t_dist = t_max - t_min
+        trafo = (trafo + t_min) * (1.0 / t_dist)
         pic = trafo[0, :, :, 0]
         pic_B = choice_B[:, :, 0]
         return pic_A, pic, pic_B
