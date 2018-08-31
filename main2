@@ -1,0 +1,33 @@
+#!/bin/sh
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py ImgBasic1 0 
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py ImgBasic2 0 
+
+
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py ImgOneRes1 1 
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py ImgOneRes2 1 
+
+
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py ImgTwoRes1 2 
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py ImgTwoRes2 2 
+
+
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py UpscaleBasic1 3 
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py UpscaleBasic2 3 
+
+
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py MtPl1 4 
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py MtPl2 4 
+
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py firstgen1 5 
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py firstgen2 5 
+
+
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py refinergen1 6 
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py refinergen2 6 
+
+
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py fullres1 7 
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py fullres1 7 
+
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py fullresnobias 8 
+CUDA_VISIBLE_DEVICES="0" ipython3 Test_gen.py fullresnobias 8 
