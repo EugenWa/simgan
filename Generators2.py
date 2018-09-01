@@ -70,11 +70,15 @@ def build_generator_upscale_basic(generator_input, generator_name, use_batch_nor
     c_4 = Conv2D(18, kernel_size=(1, 1), strides=(1, 1), padding='same')(con_1)
     c_4 = LeakyReLU(0.2)(c_4)
 
+
+    # downsampling
     c_5 = Conv2D(9, kernel_size=(3, 3), strides=(1, 1), padding='same')(c_4)
     c_5 = LeakyReLU(0.2)(c_5)
+    c_5 = MaxPooling2D()(c_5)
 
     c_6 = Conv2D(3, kernel_size=(5, 5), strides=(1, 1), padding='same')(c_5)
     c_6 = LeakyReLU(0.2)(c_6)
+    c_6 = MaxPooling2D()(c_6)
 
     gen_output = Conv2D(1, kernel_size=(1, 1), strides=(1, 1), padding='same')(c_6)
     ##gen_output = UpScaling(gen_output)
@@ -127,9 +131,11 @@ def build_generator_upscale_mtpl_resblocks(generator_input, generator_name, numb
 
     c_5 = Conv2D(9, kernel_size=(3, 3), strides=(1, 1), padding='same')(c_3)
     c_5 = LeakyReLU(0.2)(c_5)
+    c_5 = MaxPooling2D()(c_5)
 
     c_6 = Conv2D(3, kernel_size=(5, 5), strides=(1, 1), padding='same')(c_5)
     c_6 = LeakyReLU(0.2)(c_6)
+    c_6 = MaxPooling2D()(c_6)
 
     gen_output = Conv2D(1, kernel_size=(1, 1), strides=(1, 1), padding='same')(c_6)
     ##gen_output = UpScaling(gen_output)

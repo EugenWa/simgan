@@ -59,14 +59,14 @@ if __name__ == "__main__":
 
     # train gen, ID
     checkpointer0 = ModelCheckpoint(generator_name + 'weights.h5', verbose=1, save_best_only=True)
-    generator_A2B.fit(xA_train, xA_train, validation_data=(xa_val, xa_val), shuffle=True, epochs=epochs_id, batch_size=128, callbacks=[checkpointer0])
+    generator_A2B.fit(xA_train, xA_train, validation_data=(xa_val, xa_val), shuffle=True, epochs=epochs_id, batch_size=28, callbacks=[checkpointer0])
     eval_score_id = generator_A2B.evaluate(xA_test, xA_test, batch_size=128)
     print(eval_score_id)
 
     del generator_A2B
     generator_A2B = load_model(generator_name + 'weights.h5')
     checkpointer = ModelCheckpoint(generator_name + 'weights.h5', verbose=1, save_best_only=True)
-    generator_A2B.fit(xB_train, xA_train, validation_data=(xb_val, xa_val), shuffle=True, epochs=epochs_norm, batch_size=128, callbacks=[checkpointer])
+    generator_A2B.fit(xB_train, xA_train, validation_data=(xb_val, xa_val), shuffle=True, epochs=epochs_norm, batch_size=28, callbacks=[checkpointer])
     del generator_A2B
     generator_A2B = load_model(generator_name + 'weights.h5')
     eval_score_norm = generator_A2B.evaluate(xB_test, xA_test, batch_size=128)
