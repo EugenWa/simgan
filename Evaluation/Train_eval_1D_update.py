@@ -555,27 +555,63 @@ class GAN_evaluation(Evaluation):
 
         disc_accuracy = correct_disc_predictions / xA.shape[0]
 
-
-        ##########################################
-        #
-        # ADD SAVE BEST MODEL incl loss and epoch where found
-        #
-
-
         # - sort worst cases -
         worst_evals = sorted(worst_evals, key = lambda t:t[1], reverse=True)
         best_evals = sorted(best_evals, key=lambda t:t[1])
         worst_disc_losses = sorted(worst_disc_losses, key=lambda t: t[2], reverse=True)
         best_disc_losses = sorted(best_disc_losses, key=lambda t:t[2])
 
-        cols = ['Original', 'Translated', 'Target']
-        best_eval_fig, b_axes_eval = plt.subplots(nrows=number_of_cases, ncols=3)
+        # save
+        save_path = self.chunk_eval_dir + '/' + gen_name + '/' + obj + str(epoch)
+        os.makedirs(save_path, exist_ok=True)
+
+        # dump best eval
+        with open(save_path + '/Best Eval Gen', "wb") as fp:
+            pickle.dump(best_evals, fp)
+        # dump best eval
+        with open(save_path + '/Worst Eval Gen', "wb") as fp:
+            pickle.dump(worst_evals, fp)
+        with open(save_path + '/Best Eval Disc', "wb") as fp:
+            pickle.dump(best_disc_losses, fp)
+            # dump best eval
+        with open(save_path + '/Worst Eval Disc', "wb") as fp:
+            pickle.dump(worst_disc_losses, fp)
+
+        # --- save average losses ---
+        to_save = [mean_eval_loss, mean_disc_loss, disc_accuracy]  # its assumed that disc and generators arent mixed
+        with open(save_path + 'GAN_Mean_losses' + obj, "wb") as fp:
+            pickle.dump(to_save, fp)
+
+        return to_save
+
+    def visualize_chunk_data_test(self, gen_name, xA_test, xB_test, epoch, obj=''):
+        xA = xA_test
+        xB = xB_test
+
+        save_path = self.chunk_eval_dir + '/' + gen_name + '/' + obj + str(epoch)
+
+        # load data
+        # dump best eval
+        with open(save_path + '/Best Eval Gen', "rb") as fp:
+            best_evals = pickle.load(fp)
+        # dump best eval
+        with open(save_path + '/Worst Eval Gen', "rb") as fp:
+            worst_evals = pickle.load(fp)
+        with open(save_path + '/Best Eval Disc', "rb") as fp:
+            best_disc_losses = pickle.load(fp)
+            # dump best eval
+        with open(save_path + '/Worst Eval Disc', "rb") as fp:
+            worst_disc_losses = pickle.load(fp)
+
+        number_of_cases = self.number_of_cases
+        cols = ['Original', 'Translated', 'Target+T', 'Error']
+        best_eval_fig, b_axes_eval = plt.subplots(nrows=number_of_cases, ncols=4)
         plt.tight_layout()
-        worst_eval_fig,w_axes_eval = plt.subplots(nrows=number_of_cases, ncols=3)
+        worst_eval_fig, w_axes_eval = plt.subplots(nrows=number_of_cases, ncols=4)
         plt.tight_layout()
-        best_disc_fig, b_axes_disc = plt.subplots(nrows=number_of_cases, ncols=3)
+        best_disc_fig, b_axes_disc = plt.subplots(nrows=number_of_cases, ncols=4)
         plt.tight_layout()
-        worst_disc_fig,w_axes_disc = plt.subplots(nrows=number_of_cases, ncols=3)
+        worst_disc_fig, w_axes_disc = plt.subplots(nrows=number_of_cases, ncols=4)
         plt.tight_layout()
 
 
@@ -589,99 +625,54 @@ class GAN_evaluation(Evaluation):
             ax.set_title(col)
 
         for i in range(number_of_cases):
-            we_A, we_T, we_B = self.convert_tensor2pic(xA[worst_evals[i][0]],worst_evals[i][3], xB[worst_evals[i][0]])
-            # evaluation loss figure
-            w_axes_eval[i, 0].imshow(we_A, cmap=plt.gray(), vmin=0, vmax=1)
-            w_axes_eval[i, 1].imshow(we_T, cmap=plt.gray(), vmin=0, vmax=1)
-            w_axes_eval[i, 2].imshow(we_B, cmap=plt.gray(), vmin=0, vmax=1)
+            we_A, we_T, we_B = self.convert_tensor_2_fct(xA[worst_evals[i][0]],worst_evals[i][3], xB[worst_evals[i][0]])
+            w_axes_eval[i, 0].plot(self.time_axis, we_A, color='blue')
+            w_axes_eval[i, 1].plot(self.time_axis, we_T, color='cyan')
+            w_axes_eval[i, 2].plot(self.time_axis, we_B, color='green')
+            w_axes_eval[i, 2].plot(self.time_axis, we_T, color='cyan')
+            w_axes_eval[i, 3].plot(self.time_axis, (np.abs(we_T - we_B)), color='red')
             w_axes_eval[i, 1].set_xlabel('MAE Loss: ' + str(worst_evals[i][1])[0:6])
-            w_axes_eval[i, 0].set_ylabel('Img: ' + str(worst_evals[i][0]))
-            w_axes_eval[i, 0].set_yticklabels([])
-            w_axes_eval[i, 0].set_xticklabels([])
-            w_axes_eval[i, 1].set_yticklabels([])
-            w_axes_eval[i, 1].set_xticklabels([])
-            w_axes_eval[i, 0].set_xticks([])
-            w_axes_eval[i, 0].set_yticks([])
-            w_axes_eval[i, 1].set_xticks([])
-            w_axes_eval[i, 1].set_yticks([])
-            w_axes_eval[i, 2].axis('off')
+            w_axes_eval[i, 0].set_ylabel('FKT: ' + str(worst_evals[i][0]))
 
-            be_A, be_T, be_B = self.convert_tensor2pic(xA[best_evals[i][0]], best_evals[i][3], xB[best_evals[i][0]])
-            b_axes_eval[i, 0].imshow(be_A, cmap=plt.gray(), vmin=0, vmax=1)
-            b_axes_eval[i, 1].imshow(be_T, cmap=plt.gray(), vmin=0, vmax=1)
-            b_axes_eval[i, 2].imshow(be_B, cmap=plt.gray(), vmin=0, vmax=1)
+            be_A, be_T, be_B = self.convert_tensor_2_fct(xA[best_evals[i][0]], best_evals[i][3], xB[best_evals[i][0]])
+            b_axes_eval[i, 0].plot(self.time_axis, be_A, color='blue')
+            b_axes_eval[i, 1].plot(self.time_axis, be_T, color='cyan')
+            b_axes_eval[i, 2].plot(self.time_axis, be_B, color='green')
+            b_axes_eval[i, 2].plot(self.time_axis, be_T, color='cyan')
+            b_axes_eval[i, 3].plot(self.time_axis, (np.abs(be_T - be_B)), color='red')
             b_axes_eval[i, 1].set_xlabel('MAE Loss: ' + str(best_evals[i][1])[0:6])
-            b_axes_eval[i, 0].set_ylabel('Img: ' + str(best_evals[i][0]))
-            b_axes_eval[i, 0].set_yticklabels([])
-            b_axes_eval[i, 0].set_xticklabels([])
-            b_axes_eval[i, 1].set_yticklabels([])
-            b_axes_eval[i, 1].set_xticklabels([])
-            b_axes_eval[i, 0].set_xticks([])
-            b_axes_eval[i, 0].set_yticks([])
-            b_axes_eval[i, 1].set_xticks([])
-            b_axes_eval[i, 1].set_yticks([])
-            b_axes_eval[i, 2].axis('off')
+            b_axes_eval[i, 0].set_ylabel('FKT: ' + str(best_evals[i][0]))
 
             # disc_loss figure
-            bd_A, bd_T, bd_B = self.convert_tensor2pic(xA[best_disc_losses[i][0]], best_disc_losses[i][3], xB[best_disc_losses[i][0]])
-            b_axes_disc[i, 0].imshow(bd_A, cmap=plt.gray(), vmin=0, vmax=1)
-            b_axes_disc[i, 1].imshow(bd_T, cmap=plt.gray(), vmin=0, vmax=1)
-            b_axes_disc[i, 2].imshow(bd_B, cmap=plt.gray(), vmin=0, vmax=1)
-            b_axes_disc[i, 1].set_xlabel('MAE Loss: ' + str(best_evals[i][2])[0:6])
-            b_axes_disc[i, 0].set_ylabel('Img: ' + str(best_evals[i][0]))
-            b_axes_disc[i, 0].set_yticklabels([])
-            b_axes_disc[i, 0].set_xticklabels([])
-            b_axes_disc[i, 1].set_yticklabels([])
-            b_axes_disc[i, 1].set_xticklabels([])
-            b_axes_disc[i, 0].set_xticks([])
-            b_axes_disc[i, 0].set_yticks([])
-            b_axes_disc[i, 1].set_xticks([])
-            b_axes_disc[i, 1].set_yticks([])
-            b_axes_disc[i, 2].axis('off')
+            bd_A, bd_T, bd_B = self.convert_tensor_2_fct(xA[best_disc_losses[i][0]], best_disc_losses[i][3], xB[best_disc_losses[i][0]])
+            b_axes_disc[i, 0].plot(self.time_axis, bd_A, color='blue')
+            b_axes_disc[i, 1].plot(self.time_axis, bd_T, color='cyan')
+            b_axes_disc[i, 2].plot(self.time_axis, bd_B, color='green')
+            b_axes_disc[i, 2].plot(self.time_axis, bd_T, color='cyan')
+            b_axes_disc[i, 3].plot(self.time_axis, (np.abs(bd_T - bd_B)), color='red')
+            b_axes_disc[i, 1].set_xlabel('MAE Loss: ' + str(best_evals[i][1])[0:6])
+            b_axes_disc[i, 0].set_ylabel('FKT: ' + str(best_evals[i][0]))
 
-            wd_A, wd_T, wd_B = self.convert_tensor2pic(xA[worst_disc_losses[i][0]], worst_disc_losses[i][3],
+            wd_A, wd_T, wd_B = self.convert_tensor_2_fct(xA[worst_disc_losses[i][0]], worst_disc_losses[i][3],
                                                        xB[worst_disc_losses[i][0]])
-            w_axes_disc[i, 0].imshow(wd_A, cmap=plt.gray(), vmin=0, vmax=1)
-            w_axes_disc[i, 1].imshow(wd_T, cmap=plt.gray(), vmin=0, vmax=1)
-            w_axes_disc[i, 2].imshow(wd_B, cmap=plt.gray(), vmin=0, vmax=1)
-            w_axes_disc[i, 1].set_xlabel('MAE Loss: ' + str(worst_evals[i][1])[0:6])
-            w_axes_disc[i, 0].set_ylabel('Img: ' + str(worst_evals[i][0]))
-            w_axes_disc[i, 0].set_yticklabels([])
-            w_axes_disc[i, 0].set_xticklabels([])
-            w_axes_disc[i, 1].set_yticklabels([])
-            w_axes_disc[i, 1].set_xticklabels([])
-            w_axes_disc[i, 0].set_xticks([])
-            w_axes_disc[i, 0].set_yticks([])
-            w_axes_disc[i, 1].set_xticks([])
-            w_axes_disc[i, 1].set_yticks([])
-            w_axes_disc[i, 2].axis('off')
+            w_axes_disc[i, 0].plot(self.time_axis, wd_A, color='blue')
+            w_axes_disc[i, 1].plot(self.time_axis, wd_T, color='cyan')
+            w_axes_disc[i, 2].plot(self.time_axis, wd_B, color='green')
+            w_axes_disc[i, 2].plot(self.time_axis, wd_T, color='cyan')
+            w_axes_disc[i, 3].plot(self.time_axis, (np.abs(wd_T - wd_B)), color='red')
+            w_axes_disc[i, 1].set_xlabel('MAE Loss: ' + str(best_evals[i][1])[0:6])
+            w_axes_disc[i, 0].set_ylabel('FKT: ' + str(best_evals[i][0]))
 
-        '''
-        eval_fig.tight_layout()
-        disc_fig.tight_layout()
-        bothbad_fig.tight_layout()
-        '''
 
-        path = self.test_path + '/' + str(epoch)
-        os.makedirs(path, exist_ok=True)
-        # --- save figures ---
-
-        best_eval_fig.savefig(path + '/' + gen_name +obj + ' Best Evaluation Losses.png')
-        worst_eval_fig.savefig(path + '/' + gen_name +obj+ ' Worst Evaluation Losses.png')
-        best_disc_fig.savefig(path + '/' + gen_name +obj+ ' Best Discriminator Losses.png')
-        worst_disc_fig.savefig(path + '/' + gen_name +obj+ ' Worst Discriminator Losses.png')
+        best_eval_fig.savefig(save_path + '/Best Evaluation Losses.png')
+        worst_eval_fig.savefig(save_path + '/Worst Evaluation Losses.png')
+        best_disc_fig.savefig(save_path + '/Best Discriminator Losses.png')
+        worst_disc_fig.savefig(save_path + '/Worst Discriminator Losses.png')
 
         plt.close(best_eval_fig)
         plt.close(worst_eval_fig)
         plt.close(best_disc_fig)
         plt.close(worst_disc_fig)
-
-        # --- save average losses ---
-        to_save = [mean_eval_loss, mean_disc_loss, disc_accuracy]       # its assumed that disc and generators arent mixed
-        with open(path + '/' + gen_name + 'GAN_Mean_losses' + obj, "wb") as fp:
-            pickle.dump(to_save, fp)
-
-        return to_save
 
 
 

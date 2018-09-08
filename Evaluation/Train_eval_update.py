@@ -634,15 +634,15 @@ class GAN_evaluation(Evaluation):
 
         # load data
         # dump best eval
-        with open(save_path + '/Best Eval Gen', "wb") as fp:
+        with open(save_path + '/Best Eval Gen', "rb") as fp:
             best_evals = pickle.load(fp)
         # dump best eval
-        with open(save_path + '/Worst Eval Gen', "wb") as fp:
+        with open(save_path + '/Worst Eval Gen', "rb") as fp:
             worst_evals = pickle.load(fp)
-        with open(save_path + '/Best Eval Disc', "wb") as fp:
+        with open(save_path + '/Best Eval Disc', "rb") as fp:
             best_disc_losses = pickle.load(fp)
             # dump best eval
-        with open(save_path + '/Worst Eval Disc', "wb") as fp:
+        with open(save_path + '/Worst Eval Disc', "rb") as fp:
             worst_disc_losses = pickle.load(fp)
 
         number_of_cases = self.number_of_cases
