@@ -392,9 +392,6 @@ if __name__ == "__main__":
     Gan_eval.visualize_best_samples(vae.VAE_NO.name, 'MEVAL')
     print(' ---------------- --- ---------------- ')
 
-    del discriminator
-    del vae_gan_id
-    del vae_gan_no
     keras.backend.clear_session()
 
 

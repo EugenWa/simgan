@@ -554,7 +554,7 @@ class GAN_evaluation(Evaluation):
             disc_predctions = []
             for p_i in range(patch_data[0]):
                 for p_j in range(patch_data[1]):
-                    disc_predctions.append(discriminator(prediction[p_i*patch_data[2]:(p_i+1)*patch_data[2], p_j*patch_data[3]:(p_j+1)*patch_data[3], :]))
+                    disc_predctions.append(discriminator(prediction[np.newaxis ,p_i*patch_data[2]:(p_i+1)*patch_data[2], p_j*patch_data[3]:(p_j+1)*patch_data[3], :]))
             disc_pred = np.mean(disc_predctions)
             disc_loss = np.mean(np.square(np.ones((1,)) - disc_pred))            # abstand zum correct predictetem label
 
