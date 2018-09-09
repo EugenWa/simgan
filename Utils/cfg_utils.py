@@ -92,6 +92,7 @@ def cfg_VAE(c, cfg, id=''):
     vae['MODEL_ID']         = cfg.getint('model' + id, 'model_ID', fallback=0)       # chooses VAE-type
     vae['LEARNING_RATE']    = cfg.getfloat('model' + id, 'lr_rate', fallback=0.002)  # Learning rate
     vae['LR_DEF']           = cfg.getfloat('model' + id, 'lr_def', fallback=0.5)     # Learning rate
+    vae['RELU_PARAM']       = cfg.getfloat('model' + id, 'reluparam', fallback=0.3)  # Relu-alpha
     vae['OPTIMIZER']        = cfg.get('model' + id, 'optimizer', fallback='adam')    # Optimizer to be used
     vae['DECODER_LOSS']     = cfg.get('model' + id, 'DECODER_LOSS')                  # Losses to be optimized
     vae['IMAGE_LOSS']       = cfg.get('model' + id, 'IMAGE_LOSS')                    # Losses to be optimized

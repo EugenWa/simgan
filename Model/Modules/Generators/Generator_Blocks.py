@@ -12,7 +12,7 @@ CUDA_VISIBLE_DEVICES=0
 '''
     
 '''
-def build_encoder_basic(encoder_input, e_filters=[3, 9, 21, 33], use_batch_normalisation=True, use_dropout=False):
+def build_encoder_basic(encoder_input, e_filters=[3, 9, 21, 33], relu_param=0.3, use_batch_normalisation=True, use_dropout=False):
     kr_size=(3, 3)
 
 
@@ -21,12 +21,12 @@ def build_encoder_basic(encoder_input, e_filters=[3, 9, 21, 33], use_batch_norma
 
     c_L = encoder_input
     c_L = Conv2D(e_filters[0], kernel_size=(5, 5), strides=(1, 1), padding='same', use_bias=False)(c_L)
-    c_L = LeakyReLU(0.2)(c_L)
+    c_L = LeakyReLU(relu_param)(c_L)
     c_L = MaxPooling2D()(c_L)
     # create encoding blocks
     for i in range(1, len(e_filters)):
         c_L = Conv2D(e_filters[i], kernel_size=kr_size, strides=(1, 1), padding='same')(c_L)
-        c_L = LeakyReLU(0.2)(c_L)
+        c_L = LeakyReLU(relu_param)(c_L)
         c_L = MaxPooling2D()(c_L)
 
         if use_batch_normalisation and (i%2 is 0):
@@ -40,7 +40,7 @@ def build_encoder_basic(encoder_input, e_filters=[3, 9, 21, 33], use_batch_norma
     return enc_output
 
 
-def build_decoder_basic(decoder_input, d_filters=[33, 21, 9, 3], use_batch_normalisation=True, use_dropout=False):
+def build_decoder_basic(decoder_input, d_filters=[33, 21, 9, 3], relu_param=0.3, use_batch_normalisation=True, use_dropout=False):
     kr_size = (3, 3)
     if use_batch_normalisation:
         decoder_input = BatchNormalization()(decoder_input)
@@ -49,9 +49,9 @@ def build_decoder_basic(decoder_input, d_filters=[33, 21, 9, 3], use_batch_norma
     # create encoding blocks
     for i in range(len(d_filters)):
         if i >= len(d_filters)-1:       # last layer so that its symetric
-            kr_size = (5, 5)
+            kr_size = (3, 3)            # bug, since the last is the last conv2d
         c_L = Conv2D(d_filters[i], kernel_size=kr_size, strides=(1, 1), padding='same')(c_L)
-        c_L = LeakyReLU(0.2)(c_L)
+        c_L = LeakyReLU(relu_param)(c_L)
         c_L = UpSampling2D()(c_L)
 
         if use_batch_normalisation and (i%2 is 1) and (i < len(d_filters)-1):
@@ -62,18 +62,19 @@ def build_decoder_basic(decoder_input, d_filters=[33, 21, 9, 3], use_batch_norma
     if use_batch_normalisation:
         c_L = BatchNormalization()(c_L)
 
-    dec_output = Conv2D(1, kernel_size=(3, 3), strides=(1, 1), padding='same')(c_L)
+    dec_output = Conv2D(1, kernel_size=(5, 5), strides=(1, 1), padding='same')(c_L)
+    dec_output = LeakyReLU(relu_param)(dec_output)
 
     return dec_output
 
 
-def build_transformation_layer_basic(transform_input, layer_amount, layer_size=33, use_batch_normalisation=True, use_dropout=False):
+def build_transformation_layer_basic(transform_input, layer_amount, layer_size=33, relu_param=0.3, use_batch_normalisation=True, use_dropout=False):
     block_in = transform_input
     for i in range(layer_amount):
         r_1 = Conv2D(layer_size, kernel_size=(3, 3), strides=(1, 1), padding='same')(block_in)
-        r_1 = LeakyReLU(0.2)(r_1)
+        r_1 = LeakyReLU(relu_param)(r_1)
         r_2 = Conv2D(layer_size, kernel_size=(3, 3), strides=(1, 1), padding='same')(r_1)
-        r_2 = LeakyReLU(0.2)(r_2)
+        r_2 = LeakyReLU(relu_param)(r_2)
         if use_batch_normalisation:
             r_2 = BatchNormalization()(r_2)
         if use_dropout and ((i%2 is 1) or (0 < i and (i is len(layer_amount)-2))):

@@ -362,8 +362,8 @@ class Generator_evaluation(Evaluation):
 
 
 class GAN_evaluation(Evaluation):
-    def __init__(self, modelname):
-        super().__init__(modelname + '_GAN')
+    def __init__(self, modelname, cfg):
+        super().__init__(modelname + '_GAN', cfg)
         self.training_history_dir   = self.test_path + '/' + self.Model_name + ' Training History'
         self.model_saves_dir        = self.test_path + '/' + self.Model_name + ' Trained Models'
         os.makedirs(self.training_history_dir, exist_ok=True)
@@ -505,14 +505,13 @@ class GAN_evaluation(Evaluation):
         # evaluate
         for i in range(xA.shape[0]):
             # generator prediction
-            prediction = generator(xA[i][np.newaxis, :, :, :])
+            prediction = generator(xA[i][np.newaxis, :, :])[0, :, :]
             eval_loss = np.mean(np.abs(xB[i] - prediction))
 
             # discriminator prediction
             disc_predctions = []
             for p_i in range(patch_data[0]):
-                for p_j in range(patch_data[1]):
-                    disc_predctions.append(discriminator(prediction[:, p_i*patch_data[2]:(p_i+1)*patch_data[2], p_j*patch_data[3]:(p_j+1)*patch_data[3], :]))
+                disc_predctions.append(discriminator(prediction[np.newaxis, p_i*patch_data[1]:(p_i+1)*patch_data[1], :]))
             disc_pred = np.mean(disc_predctions)
             disc_loss = np.mean(np.square(np.ones((1,)) - disc_pred))            # abstand zum correct predictetem label
 

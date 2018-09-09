@@ -4,6 +4,7 @@ matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from glob import glob
 import os
+import sys
 import random
 
 
@@ -24,6 +25,8 @@ class Data_Generator_1D:
 
         self.noise_percent = 10
 
+
+
         self.nyquist_f = 2*max_frequency + 1
         self.interval_length = interval_length
         if self.interval_length < self.nyquist_f:
@@ -36,17 +39,45 @@ class Data_Generator_1D:
         # x-Axis:
         self.time = np.arange(0, interval, interval / interval_length)
 
-    def create_unit_square_indexbased(self, fct, start_index, end_index):
-        ftn = np.zeros(fct.shape[0])
+        self.unit_step_idx_lenght_min = int(self.interval_length * 0.05)
+        self.unit_step_idx_lenght_max = int(self.interval_length * 0.6)
+        self.population_len = range(self.unit_step_idx_lenght_min, self.unit_step_idx_lenght_max)
+
+    def create_unit_step_tensor(self, shape):
+        samples = shape[0]
+        length = self.interval_length
+        channels = shape[2]
+
+        fkt_tensor = np.zeros((samples, length, channels))
+        for smpl in range(samples):
+            for channel in range(channels):
+                fkt_tensor[smpl, :, channel] = self.create_unit_square()
+        return fkt_tensor
+
+    def create_unit_square(self):
+        l = random.sample(self.population_len, 1)
+        start = random.sample(range(self.interval_length - l[0]), 1)
+        return self.create_unit_square_indexbased(start[0], start[0] + l[0])
+
+    def create_unit_square_indexbased(self, start_index, end_index):
+        ftn = np.zeros(self.interval_length)
         ftn[start_index:end_index] = 1
         return ftn
 
-    def create_unit_square(self, fct, start, end):
-        ftn = np.zeros(fct.shape[0])
+    def step_times_trigon(self, fct, step):
+        return np.multiply(fct, step)
+
+    def create_unit_square_timebased(self, start, end):
+        ftn = np.zeros(self.interval_length)
         start_index = self.time > start
         end_index = self.time > end
         ftn[start_index:end_index] = 1
         return ftn
+
+    def Noise_degrade_step(self, fct):
+        sqr_1 = self.create_unit_square()
+        return self.step_times_trigon(fct, sqr_1)
+
 
 
     def create_rnd_trigons(self, shape, spectrum, modify_amplitude=True, modify_frequency=True, use_bias=False, use_phase_shift=False):
@@ -187,6 +218,8 @@ class Data_Generator_1D:
                     noisy_functions[sample, :, channel] = self.Noise_degrade_F(fctensor[sample, :, channel])
                 elif moise_mode is 2:
                     noisy_functions[sample, :, channel] = self.Noise_add_gap(fctensor[sample, :, channel], np.random.randint(0, 10))
+                elif moise_mode is 3:
+                    noisy_functions[sample, :, channel] = self.Noise_degrade_step(fctensor[sample, :, channel])
 
         return noisy_functions
 
@@ -210,7 +243,7 @@ class OneD_Data_Loader:
 
 
 if __name__=='__main__':
-    data_set_name = 'D1_fktsS'
+    data_set_name = sys.argv[1]#'fk_step_1'
     dataset_length = 10000
     # generate Data_set
     Datasetpath = os.path.dirname(os.path.abspath(__file__))
@@ -228,14 +261,29 @@ if __name__=='__main__':
     config = np.array([dataset_length, interval, Dol.interval_length])
     np.save(Datasetpath + '/Datasets/%s/cfg' % data_set_name, config)
 
-
-    ft = Dol.create_rnd_trigons((dataset_length, s_length, 1), Dol.f_spectrum['low'], False, True, False, True)#False, False, False, False)
-    noisy1 = Dol.add_noise_to_tensor(ft, 0)
-    noisy2 = Dol.add_noise_to_tensor(ft, 2)
-    noisy3 = Dol.add_noise_to_tensor(noisy1, 2)
-    noisy4 = Dol.add_noise_to_tensor(noisy1, 1)
-    noisy5 = Dol.add_noise_to_tensor(noisy4, 2)
-
+    mode = sys.argv[2]
+    if mode is 0:
+        ft = Dol.create_rnd_trigons((dataset_length, s_length, 1), Dol.f_spectrum['low'], False, True, False, True)#False, False, False, False)
+        noisy1 = Dol.add_noise_to_tensor(ft, 0)
+        noisy2 = Dol.add_noise_to_tensor(ft, 2)
+        noisy3 = Dol.add_noise_to_tensor(noisy1, 2)
+        noisy4 = Dol.add_noise_to_tensor(noisy1, 1)
+        noisy5 = Dol.add_noise_to_tensor(noisy4, 2)
+    elif mode is 1:
+        ft = Dol.create_unit_step_tensor((dataset_length, s_length, 1))
+        noisy1 = Dol.add_noise_to_tensor(ft, 0)
+        noisy2 = Dol.add_noise_to_tensor(ft, 2)
+        noisy3 = Dol.add_noise_to_tensor(noisy1, 2)
+        noisy4 = Dol.add_noise_to_tensor(noisy1, 1)
+        noisy5 = Dol.add_noise_to_tensor(noisy4, 2)
+    elif mode is 2:
+        ft_trig = Dol.create_rnd_trigons((dataset_length, s_length, 1), Dol.f_spectrum['low'], False, True, False, True)  # False, False, False, False)
+        ft = Dol.add_noise_to_tensor(ft_trig, 3)
+        noisy1 = Dol.add_noise_to_tensor(ft, 0)
+        noisy2 = Dol.add_noise_to_tensor(ft, 2)
+        noisy3 = Dol.add_noise_to_tensor(noisy1, 2)
+        noisy4 = Dol.add_noise_to_tensor(noisy1, 1)
+        noisy5 = Dol.add_noise_to_tensor(noisy4, 2)
 
     np.save(path_A + '/A.npy',  ft)
     np.save(path_B + '/B1.npy', noisy1)             # just amps
@@ -256,11 +304,11 @@ if __name__=='__main__':
 
     fit = plt.figure()
     plt.plot(tmp, ft[0, :, 0], color='b')
-    plt.plot(tmp, ft_loaded[0, :, 0] + 1, color='r')
-    #plt.plot(tmp, noisy1[0, :, 0], color='r')
+    plt.plot(tmp, noisy1[0, :, 0], color='r')
+    plt.plot(tmp, noisy3[0, :, 0], color='g')
     #plt.plot(tmp, noisy2[0, :, 0], color='g')
     #plt.plot(tmp, noisy3[0, :, 0], color='yellow')
-    plt.plot(tmp, noisy4[0, :, 0], color='cyan')
+    #plt.plot(tmp, noisy4[0, :, 0], color='cyan')
 
 
     plt.show()

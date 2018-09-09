@@ -22,6 +22,7 @@ class Basic_2Channel_VAE:
 
             lr                      = cfg['VAE' + id]['LEARNING_RATE']
             lr_decay                = cfg['VAE' + id]['LR_DEF']
+            relu_param              = cfg['VAE' + id]['RELU_PARAM']
             optimizer               = self.optimizers[cfg['VAE' + id]['OPTIMIZER']]
             filters                 = cfg['VAE' + id]['FILTERS']
             use_drop_out            = cfg['VAE' + id]['USE_DROP_OUT']
@@ -32,8 +33,8 @@ class Basic_2Channel_VAE:
 
 
             # -- VAE Model ID ---
-            encoder_ID_features = build_basic_encoder(vae_input_id, filters, use_batch_normalisation, use_drop_out)
-            decoder_ID_out      = build_basic_decoder(feature_inp, filters_rev, use_batch_normalisation, use_drop_out)
+            encoder_ID_features = build_basic_encoder(vae_input_id, filters, relu_param, use_batch_normalisation, use_drop_out)
+            decoder_ID_out      = build_basic_decoder(feature_inp, filters_rev, relu_param, use_batch_normalisation, use_drop_out)
             self.decoder_optimizer  = optimizer(lr, lr_decay)
             self.Decoder            = Model(inputs=[feature_inp], outputs=[decoder_ID_out], name=vae_name + '_decoder')
 
@@ -56,8 +57,8 @@ class Basic_2Channel_VAE:
             self.Decoder.trainable=False
 
             # transformation Model
-            encoder_NO_features = build_basic_encoder(vae_input_no, filters, use_batch_normalisation, use_drop_out)
-            transfo_NO_features = build_basic_transformation_layers(encoder_NO_features, trafo_layers, filters[-1], use_batch_normalisation, use_drop_out)
+            encoder_NO_features = build_basic_encoder(vae_input_no, filters,relu_param, use_batch_normalisation, use_drop_out)
+            transfo_NO_features = build_basic_transformation_layers(encoder_NO_features, trafo_layers, filters[-1], relu_param, use_batch_normalisation, use_drop_out)
             vae__out_no         = self.Decoder(transfo_NO_features)
             self.vae_no_optimizer   = optimizer(lr, lr_decay)
             self.VAE_NO             = Model(inputs=[vae_input_no], outputs=[vae__out_no, transfo_NO_features], name=vae_name + '_vaeNO')

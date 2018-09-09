@@ -67,9 +67,10 @@ if __name__ == "__main__":
     use_drop_out    = vae_config['VAE' + id]['USE_DROP_OUT']
     use_batch_normalisation = vae_config['VAE' + id]['USE_BATCH_NORM']
     trafo_layers            = vae_config['VAE' + id]['TRAFO_LAYERS']
+    relu_param              = vae_config['VAE' + id]['RELU_PARAM']
 
 
-    vae_res = VAE_NO_RES(vae_name, xA_train[0].shape, filters, use_batch_normalisation, use_drop_out)
+    vae_res = VAE_NO_RES(vae_name, xA_train[0].shape, filters, relu_param, use_batch_normalisation, use_drop_out)
     # --- build gen ---
 
     vae_res.compile(optimizer=optimizer, loss=vae_config['VAE' + id]['IMAGE_LOSS'])#, metrics=['mean_absolute_error', 'val_mean_absolute_error'])

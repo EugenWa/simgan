@@ -3,10 +3,10 @@ import os
 import sys
 sys.path.insert(0, '../../')
 
-from Datamanager.Data_loader                        import Data_Loader
-from Evaluation.Train_eval_update                   import GAN_evaluation
-from Model.Modules.VAEs.VAE_Models                  import Basic_VAE
-from Model.Modules.Discriminators.Discriminators    import discriminator_build_4conv
+from Datamanager.OneD_Data_Creator                      import OneD_Data_Loader
+from Evaluation.Train_eval_1D_update                    import GAN_evaluation
+from Model.Modules.VAEs.VAE_Models_1D                   import Basic_2Channel_VAE
+from Model.Modules.Discriminators1D.Disc_1D             import discriminator_build_4conv_oneD
 from Utils.cfg_utils import read_cfg
 
 # - keras -
@@ -26,20 +26,23 @@ if __name__ == "__main__":
     CUDA_VISIBLE_DEVICES = 0
 
     # generator
-    config_name = 'gan_cfg.ini'#sys.argv[1]
+    config_name = sys.argv[1]#'gan_cfg.ini'#sys.argv[1]
+    degraded_dataset = sys.argv[2]
     gan_config = read_cfg(config_name, '../Configs')
     if gan_config['MODEL_TYPE'] != 'GAN':
         print('This is a routine to train GANs. Config of non GAN model was passed.')
         print('Exiting ...')
         exit()
-    Gan_eval = GAN_evaluation(gan_config['MODEL_NAME'])
+    Data_loader = OneD_Data_Loader(gan_config['DATASET'])
+    gan_eval = GAN_evaluation(gan_config['MODEL_NAME'], Data_loader.config)
 
     # load Data ---------------------------------------------------------
-    D_loader = Data_Loader(gan_config['DATASET'])
-    xA_train, xB_train  = D_loader.Load_Data_Tensors('train', invert=True)
-    xA_test, xB_test    = D_loader.Load_Data_Tensors('test', invert=True)
-
     validation_split = gan_config['EVAL_SPLIT']
+
+    xA_train = Data_loader.load_A()
+    xB_train = Data_loader.load_B(degraded_dataset)
+    xA_test = xA_train[0:int(xA_train.shape[0] * 0.1)]
+    xB_test = xB_train[0:int(xB_train.shape[0] * 0.1)]
 
     xa_val = xA_test[0:int(xA_test.shape[0] * validation_split)]
     xb_val = xB_test[0:int(xB_test.shape[0] * validation_split)]
@@ -63,18 +66,16 @@ if __name__ == "__main__":
     optimizers = {'adam': keras.optimizers.adam}
 
     ####################
-    vae = Basic_VAE(vae_name, xA_train[0].shape, gan_config)
+    vae = Basic_2Channel_VAE(vae_name, xA_train[0].shape, gan_config)
     ####################
     # create patch_gan
 
     patch_lenght_width = gan_config['DISC']['PATCH_NUMBER_W']
-    patch_lenght_hight = gan_config['DISC']['PATCH_NUMBER_H']
     patch_width = int(xA_train[0].shape[0]/patch_lenght_width)
-    patch_hight = int(xA_train[0].shape[1]/patch_lenght_hight)
 
-    disc_input = Input(shape=(patch_width, patch_hight, xA_train[0].shape[2]))
+    disc_input = Input(shape=(patch_width, xA_train[0].shape[1]))
     # --- build_model ---
-    disc_output = discriminator_build_4conv(disc_input, True, True)
+    disc_output = discriminator_build_4conv_oneD(disc_input, 0.3, True, True)
     lr          = gan_config['DISC']['LEARNING_RATE']
     lr_decay    = gan_config['DISC']['LR_DEF']
     disc_optimizer = optimizers[gan_config['DISC']['OPTIMIZER']](lr, lr_decay)
@@ -94,8 +95,8 @@ if __name__ == "__main__":
     disc_id_patch_eval = []
     disc_no_patch_eval = []
     for p_i in range(patch_lenght_width):
-            disc_id_patch_eval.append(discriminator(Lambda(lambda x : x[:, p_i * patch_width:(p_i + 1) * patch_width, p_j * patch_hight:(p_j + 1) * patch_hight, :])(id_trafo)))
-            disc_no_patch_eval.append(discriminator(Lambda(lambda x : x[:, p_i * patch_width:(p_i + 1) * patch_width, p_j * patch_hight:(p_j + 1) * patch_hight, :])(no_trafo)))
+            disc_id_patch_eval.append(discriminator(Lambda(lambda x : x[:, p_i * patch_width:(p_i + 1) * patch_width, :])(id_trafo)))
+            disc_no_patch_eval.append(discriminator(Lambda(lambda x : x[:, p_i * patch_width:(p_i + 1) * patch_width, :])(no_trafo)))
     if len(disc_id_patch_eval) is 1:
         disc_eval_id = disc_id_patch_eval[0]
         disc_eval_no = disc_no_patch_eval[0]
@@ -119,7 +120,7 @@ if __name__ == "__main__":
     # --- Generator History --- #
     #############################
     batch_size = max(b_size_id, b_size_no)
-    Generator_history = np.zeros((batch_size * (int(xA_train.shape[0] / batch_size)) * gan_config['FULL_Training']['GENHIST_SIZE'], xA_train.shape[1], xA_train.shape[2] , xA_train.shape[3]))
+    Generator_history = np.zeros((batch_size * (int(xA_train.shape[0] / batch_size)) * gan_config['FULL_Training']['GENHIST_SIZE'], xA_train.shape[1], xA_train.shape[2]))
 
 
     # set equal shuffling
@@ -165,31 +166,31 @@ if __name__ == "__main__":
 
         # calculate training loss
         if epoch >= epochs_id_vae:
-            Gan_eval.no_loss_epoch.append([np.mean(no_loss_batch), np.std(no_loss_batch)])
-            Gan_eval.ges_loss_epoch.append([np.mean(ges_loss_batch), np.std(ges_loss_batch)])
-        Gan_eval.id_loss_epoch.append([np.mean(id_loss_batch), np.std(id_loss_batch)])
+            gan_eval.no_loss_epoch.append([np.mean(no_loss_batch), np.std(no_loss_batch)])
+            gan_eval.ges_loss_epoch.append([np.mean(ges_loss_batch), np.std(ges_loss_batch)])
+        gan_eval.id_loss_epoch.append([np.mean(id_loss_batch), np.std(id_loss_batch)])
 
 
         # evaluate Model on Validation_set
-        validation_loss_id_epoch = Gan_eval.evaluate_model_on_testdata_chunk_gen_only(vae.predict_ID_img_only, vae.VAE_ID.name, xa_val, xa_val, epoch, 'ID')
-        Gan_eval.valid_loss_id.append(validation_loss_id_epoch)
+        validation_loss_id_epoch = gan_eval.evaluate_model_on_testdata_chunk_gen_only(vae.predict_ID_img_only, vae.VAE_ID.name, xa_val, xa_val, epoch, 'ID')
+        gan_eval.valid_loss_id.append(validation_loss_id_epoch)
         # save best id model
-        if Gan_eval.q_vae_save_model_ID(validation_loss_id_epoch, epoch):
+        if gan_eval.q_vae_save_model_ID(validation_loss_id_epoch, epoch):
             # safe model
             print('SAVING ID-Model')
-            vae.save_model(Gan_eval.model_saves_dir, obj='VAE_ID')
+            vae.save_model(gan_eval.model_saves_dir, obj='VAE_ID')
 
         if epoch >= epochs_id_vae:
-            validation_loss_no_epoch = Gan_eval.evaluate_model_on_testdata_chunk_gen_only(vae.predict_NO_img_only, vae.VAE_NO.name, xb_val, xa_val, epoch, 'NO')
-            Gan_eval.valid_loss_no.append(validation_loss_no_epoch)
+            validation_loss_no_epoch = gan_eval.evaluate_model_on_testdata_chunk_gen_only(vae.predict_NO_img_only, vae.VAE_NO.name, xb_val, xa_val, epoch, 'NO')
+            gan_eval.valid_loss_no.append(validation_loss_no_epoch)
 
-            if Gan_eval.q_vae_save_model_NO(validation_loss_no_epoch, epoch):
+            if gan_eval.q_vae_save_model_NO(validation_loss_no_epoch, epoch):
                 # safe model
                 print('SAVING')
-                vae.save_model(Gan_eval.model_saves_dir, obj='VAE_NO')
+                vae.save_model(gan_eval.model_saves_dir, obj='VAE_NO')
 
     # save training history
-    Gan_eval.dump_training_history_ID()
+    gan_eval.dump_training_history_ID()
 
 
 
@@ -198,9 +199,9 @@ if __name__ == "__main__":
     continue_training_no = True
 
     if continue_training_no:
-        vae.load_Model(Gan_eval.model_saves_dir, obj='VAE_NO')
+        vae.load_Model(gan_eval.model_saves_dir, obj='VAE_NO')
     else:
-        vae.load_Model(Gan_eval.model_saves_dir, obj='VAE_ID')
+        vae.load_Model(gan_eval.model_saves_dir, obj='VAE_ID')
 
 
 
@@ -239,7 +240,7 @@ if __name__ == "__main__":
                 print('Epoch ', epoch, '/', (epochs_id_gan + epochs_norm_gan), '; Batch ', batch_i,'/', number_of_iterations, ' ID-Loss: ', loss_id)
                 gan_id_loss_batch.append(loss_id)
                 imgs_idvae = vae.VAE_ID.predict(xA_batch)
-                imgs_novae = np.zeros((0, xA_batch.shape[1], xA_batch.shape[2], xA_batch.shape[3]))
+                imgs_novae = np.zeros((0, xA_batch.shape[1], xA_batch.shape[2]))
                 # fill of id images happens after if else cause id images are always generated
             else:
                 # keep training id mapping
@@ -282,7 +283,7 @@ if __name__ == "__main__":
 
             # --- train discriminator ---
             imgs_ideal = xA_batch
-            disc_batch = np.zeros((xA_batch.shape[0] + imgs_idvae.shape[0] + imgs_novae.shape[0], xA_batch.shape[1], xA_batch.shape[2], xA_batch.shape[3]))
+            disc_batch = np.zeros((xA_batch.shape[0] + imgs_idvae.shape[0] + imgs_novae.shape[0], xA_batch.shape[1], xA_batch.shape[2]))
             disc_batch[0:imgs_ideal.shape[0]] = imgs_ideal
             disc_batch[imgs_ideal.shape[0]:imgs_ideal.shape[0]+imgs_idvae.shape[0]] = imgs_idvae
             disc_batch[imgs_ideal.shape[0]+imgs_idvae.shape[0]:] = imgs_novae
@@ -296,46 +297,45 @@ if __name__ == "__main__":
 
             disc_loss = []
             for p_i in range(patch_lenght_width):
-                for p_j in range(patch_lenght_hight):
-                    disc_loss.append(discriminator.train_on_batch(disc_batch[:, p_i * patch_width:(p_i + 1) * patch_width, p_j * patch_hight:(p_j + 1) * patch_hight ,:], disc_labels))
+                    disc_loss.append(discriminator.train_on_batch(disc_batch[:, p_i * patch_width:(p_i + 1) * patch_width,:], disc_labels))
             disc_loss_batch.append(np.mean(disc_loss, axis=1))
 
             # shuffle GEN history, important, cause fill attatches new gen images at the beginning
             np.random.shuffle(Generator_history)
 
         # calculate training loss
-        Gan_eval.gan_disc_loss_epoch.append([np.mean(disc_loss_batch, axis=1), np.std(disc_loss_batch, axis=1)])
-        Gan_eval.gan_id_loss_epoch.append([np.mean(gan_id_loss_batch, axis=0), np.std(gan_id_loss_batch, axis=0)])
+        gan_eval.gan_disc_loss_epoch.append([np.mean(disc_loss_batch, axis=1), np.std(disc_loss_batch, axis=1)])
+        gan_eval.gan_id_loss_epoch.append([np.mean(gan_id_loss_batch, axis=0), np.std(gan_id_loss_batch, axis=0)])
         if epoch > epochs_id_gan:
-            Gan_eval.gan_ges_loss_epoch.append([np.mean(gan_ges_loss_batch, axis=0), np.std(gan_ges_loss_batch, axis=0)])
+            gan_eval.gan_ges_loss_epoch.append([np.mean(gan_ges_loss_batch, axis=0), np.std(gan_ges_loss_batch, axis=0)])
 
 
         # evaluate Model on Validation_set
-        validation_loss_id_epoch = Gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_ID_img_only, vae.VAE_ID.name, discriminator.predict, [patch_lenght_width, patch_lenght_hight, patch_width, patch_hight] , xa_val, xa_val, epoch, 'ID')
-        Gan_eval.gan_valid_loss_id.append(validation_loss_id_epoch)
+        validation_loss_id_epoch = gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_ID_img_only, vae.VAE_ID.name, discriminator.predict, [patch_lenght_width,  patch_width] , xa_val, xa_val, epoch, 'ID')
+        gan_eval.gan_valid_loss_id.append(validation_loss_id_epoch)
         if epoch >= epochs_id_gan:
-            validation_loss_no_epoch = Gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_NO_img_only, vae.VAE_NO.name, discriminator.predict, [patch_lenght_width, patch_lenght_hight, patch_width, patch_hight], xb_val, xa_val, epoch)
-            Gan_eval.gan_valid_loss_no.append(validation_loss_no_epoch)
+            validation_loss_no_epoch = gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_NO_img_only, vae.VAE_NO.name, discriminator.predict, [patch_lenght_width,  patch_width], xb_val, xa_val, epoch)
+            gan_eval.gan_valid_loss_no.append(validation_loss_no_epoch)
 
-            if Gan_eval.best_loss_no_GAN[0] > validation_loss_no_epoch[0] and (Gan_eval.best_loss_no_GAN[1] > np.abs(validation_loss_no_epoch[1] - 0.5)):
-                Gan_eval.best_loss_no_GAN = validation_loss_no_epoch
-                Gan_eval.best_epoch_no_GAN = epoch
+            if gan_eval.best_loss_no_GAN[0] > validation_loss_no_epoch[0] and (gan_eval.best_loss_no_GAN[1] > np.abs(validation_loss_no_epoch[1] - 0.5)):
+                gan_eval.best_loss_no_GAN = validation_loss_no_epoch
+                gan_eval.best_epoch_no_GAN = epoch
 
                 # safe model
                 print('SAVING')
-                vae.save_model(Gan_eval.model_saves_dir, 'EvalM')
-                discriminator.save(Gan_eval.model_saves_dir + '/discriminator_EvalM.h5')
-                vae_gan_id.save(Gan_eval.model_saves_dir+ '/VAE_GAN_ID_EvalM.h5')
-                vae_gan_no.save(Gan_eval.model_saves_dir + '/VAE_GAN_NO_EvalM.h5')
+                vae.save_model(gan_eval.model_saves_dir, 'EvalM')
+                discriminator.save(gan_eval.model_saves_dir + '/discriminator_EvalM.h5')
+                vae_gan_id.save(gan_eval.model_saves_dir+ '/VAE_GAN_ID_EvalM.h5')
+                vae_gan_no.save(gan_eval.model_saves_dir + '/VAE_GAN_NO_EvalM.h5')
 
     # save history
-    Gan_eval.dump_training_history_GAN()
+    gan_eval.dump_training_history_GAN()
 
     # safe last model, due to the fact that quantitative decisions about quality are often misleading
-    vae.save_model(Gan_eval.model_saves_dir, 'LAST')
-    discriminator.save(Gan_eval.model_saves_dir + '/discriminator_LAST.h5')
-    vae_gan_id.save(Gan_eval.model_saves_dir + '/VAE_GAN_ID_LAST.h5')
-    vae_gan_no.save(Gan_eval.model_saves_dir + '/VAE_GAN_NO_LAST.h5')
+    vae.save_model(gan_eval.model_saves_dir, 'LAST')
+    discriminator.save(gan_eval.model_saves_dir + '/discriminator_LAST.h5')
+    vae_gan_id.save(gan_eval.model_saves_dir + '/VAE_GAN_ID_LAST.h5')
+    vae_gan_no.save(gan_eval.model_saves_dir + '/VAE_GAN_NO_LAST.h5')
 
 
 
@@ -343,24 +343,24 @@ if __name__ == "__main__":
     print(' ---------------- TESTING ---------------- ')
     print()
     print('Test the LAST GAN-Model on ID_mapping:')
-    test_loss_id = Gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_ID_img_only, vae.VAE_ID.name,
+    test_loss_id = gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_ID_img_only, vae.VAE_ID.name,
                                                                     discriminator.predict,
-                                                                    [patch_lenght_width, patch_lenght_hight,
-                                                                     patch_width, patch_hight], xA_test, xA_test, 199999,
+                                                                    [patch_lenght_width,
+                                                                     patch_width], xA_test, xA_test, 199999,
                                                                     'ID_LAST')
-    test_loss_no = Gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_NO_img_only, vae.VAE_NO.name,
+    test_loss_no = gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_NO_img_only, vae.VAE_NO.name,
                                                                     discriminator.predict,
-                                                                    [patch_lenght_width, patch_lenght_hight,
-                                                                     patch_width, patch_hight], xB_test, xA_test, 199999,
+                                                                    [patch_lenght_width,
+                                                                     patch_width], xB_test, xA_test, 199999,
                                                                     'LAST')
     print('Test loss ID: ', test_loss_id)
     print('Test loss NO: ', test_loss_no)
     print(' ---------------- --- ---------------- ')
 
-    Gan_eval.sample_best_model_output(xA_test, xA_test, vae.predict_ID_img_only, vae.VAE_ID.name, 'ID_LAST')
-    Gan_eval.sample_best_model_output(xB_test, xA_test, vae.predict_NO_img_only, vae.VAE_NO.name, 'LAST')
-    Gan_eval.visualize_best_samples(vae.VAE_ID.name, 'ID_LAST')
-    Gan_eval.visualize_best_samples(vae.VAE_NO.name, 'LAST')
+    gan_eval.sample_best_model_output(xA_test, xA_test, vae.predict_ID_img_only, vae.VAE_ID.name, 'ID_LAST')
+    gan_eval.sample_best_model_output(xB_test, xA_test, vae.predict_NO_img_only, vae.VAE_NO.name, 'LAST')
+    gan_eval.visualize_best_samples(vae.VAE_ID.name, 'ID_LAST')
+    gan_eval.visualize_best_samples(vae.VAE_NO.name, 'LAST')
 
 
 
@@ -373,27 +373,25 @@ if __name__ == "__main__":
     # this might be unnecessary
     del vae_gan_id
     del vae_gan_no
-    vae.load_Model(Gan_eval.model_saves_dir, 'EvalM')
-    discriminator = load_model(Gan_eval.model_saves_dir + '/discriminator_LAST.h5')
+    vae.load_Model(gan_eval.model_saves_dir, 'EvalM')
+    discriminator = load_model(gan_eval.model_saves_dir + '/discriminator_LAST.h5')
     #vae_gan_id = load_model(gen_eval.test_path + '/VAE_GAN_ID_LAST.h5')
     #vae_gan_no = load_model(gen_eval.test_path + '/VAE_GAN_NO_LAST.h5')
 
 
     #
-    test_loss_id = Gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_ID_img_only, vae.VAE_ID.name, discriminator.predict, [patch_lenght_width, patch_lenght_hight, patch_width, patch_hight] , xA_test, xA_test, 100000, 'ID_MEVAL')
-    test_loss_no = Gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_NO_img_only, vae.VAE_NO.name, discriminator.predict, [patch_lenght_width, patch_lenght_hight, patch_width, patch_hight], xB_test, xA_test, 100000, 'MEVAL')
+    test_loss_id = gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_ID_img_only, vae.VAE_ID.name, discriminator.predict, [patch_lenght_width, patch_width] , xA_test, xA_test, 100000, 'ID_MEVAL')
+    test_loss_no = gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_NO_img_only, vae.VAE_NO.name, discriminator.predict, [patch_lenght_width, patch_width], xB_test, xA_test, 100000, 'MEVAL')
     print('Test loss ID: ', test_loss_id)
     print('Test loss NO: ', test_loss_no)
 
-    Gan_eval.sample_best_model_output(xA_test, xA_test, vae.predict_ID_img_only, vae.VAE_ID.name, 'ID_MEVAL' )
-    Gan_eval.sample_best_model_output(xB_test, xA_test, vae.predict_NO_img_only, vae.VAE_NO.name, 'MEVAL')
-    Gan_eval.visualize_best_samples(vae.VAE_ID.name, 'ID_MEVAL' )
-    Gan_eval.visualize_best_samples(vae.VAE_NO.name, 'MEVAL')
+    gan_eval.sample_best_model_output(xA_test, xA_test, vae.predict_ID_img_only, vae.VAE_ID.name, 'ID_MEVAL' )
+    gan_eval.sample_best_model_output(xB_test, xA_test, vae.predict_NO_img_only, vae.VAE_NO.name, 'MEVAL')
+    gan_eval.visualize_best_samples(vae.VAE_ID.name, 'ID_MEVAL' )
+    gan_eval.visualize_best_samples(vae.VAE_NO.name, 'MEVAL')
     print(' ---------------- --- ---------------- ')
 
     del discriminator
-    del vae_gan_id
-    del vae_gan_no
     keras.backend.clear_session()
 
 
