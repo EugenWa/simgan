@@ -10,11 +10,11 @@ from Model.Modules.Generators1D.Generator_Basic import build_basic_decoder, buil
 CUDA_VISIBLE_DEVICES=0
 
 
-def VAE_RES(vae_name, img_shape, filters, relu_param=0.3, use_batch_norm=True, use_dropout=False):
+def VAE_RES(vae_name, img_shape, filters, res_layers, relu_param=0.3, use_batch_norm=True, use_dropout=False):
     inp = Input(img_shape)
 
     feat = build_basic_encoder(inp, filters,relu_param, use_batch_norm, use_dropout)
-    tfeat = build_basic_transformation_layers(feat, 2,filters[-1],relu_param, use_batch_norm, use_dropout)
+    tfeat = build_basic_transformation_layers(feat, res_layers,filters[-1],relu_param, use_batch_norm, use_dropout)
     out = build_basic_decoder(tfeat, list(reversed(filters)),relu_param, use_batch_norm, use_dropout)
 
     m = Model(inp, out, name=vae_name)

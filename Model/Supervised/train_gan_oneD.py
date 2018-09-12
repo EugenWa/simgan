@@ -67,6 +67,7 @@ if __name__ == "__main__":
 
     ####################
     vae = Basic_2Channel_VAE(vae_name, xA_train[0].shape, gan_config)
+    #vae.compile(optimizer=optimizer, loss=vae_config['VAE' + id]['IMAGE_LOSS'])
     ####################
     # create patch_gan
 
@@ -108,8 +109,8 @@ if __name__ == "__main__":
 
     # compile
 
-    vae_gan_id_opt = optimizers[gan_config['VAE']['OPTIMIZER']](0.1, 0.5)#(gan_config['VAE']['LEARNING_RATE'], gan_config['VAE']['LR_DEF'])
-    vae_gan_no_opt = optimizers[gan_config['VAE']['OPTIMIZER']](0.1, 0.5)#(gan_config['VAE']['LEARNING_RATE'], gan_config['VAE']['LR_DEF'])
+    vae_gan_id_opt = optimizers[gan_config['VAE']['OPTIMIZER']](gan_config['VAE']['LEARNING_RATE'], gan_config['VAE']['LR_DEF'])
+    vae_gan_no_opt = optimizers[gan_config['VAE']['OPTIMIZER']](gan_config['VAE']['LEARNING_RATE'], gan_config['VAE']['LR_DEF'])
     vae_gan_id.compile(optimizer=vae_gan_id_opt, loss=[gan_config['FULL_MODEL']['IMG_LOSS'], gan_config['FULL_MODEL']['DISC_LOSS']], loss_weights=gan_config['FULL_MODEL']['LOSS_WEIGHTS_ID'])
     vae_gan_no.compile(optimizer=vae_gan_no_opt, loss=[gan_config['FULL_MODEL']['IMG_LOSS'], gan_config['FULL_MODEL']['FEATURE_LOSS'], gan_config['FULL_MODEL']['DISC_LOSS']], loss_weights=gan_config['FULL_MODEL']['LOSS_WEIGHTS_NO'])
 
@@ -198,10 +199,10 @@ if __name__ == "__main__":
     # load the best vae model so far and continue training on it
     continue_training_no = True
 
-    if continue_training_no:
-        vae.load_Model(gan_eval.model_saves_dir, obj='VAE_NO')
-    else:
-        vae.load_Model(gan_eval.model_saves_dir, obj='VAE_ID')
+    #if continue_training_no:
+        #vae.load_Model(gan_eval.model_saves_dir, obj='VAE_NO')
+    #else:
+        #vae.load_Model(gan_eval.model_saves_dir, obj='VAE_ID')
 
 
 
@@ -324,7 +325,7 @@ if __name__ == "__main__":
             validation_loss_no_epoch = gan_eval.evaluate_gan_on_testdata_chunk(vae.predict_NO_img_only, vae.VAE_NO.name, discriminator.predict, [patch_lenght_width,  patch_width], xb_val, xa_val, epoch)
             gan_eval.gan_valid_loss_no.append(validation_loss_no_epoch)
 
-            if gan_eval.best_loss_no_GAN[0] > validation_loss_no_epoch[0] and (gan_eval.best_loss_no_GAN[1] > np.abs(validation_loss_no_epoch[1] - 0.5)):
+            if gan_eval.best_loss_no_GAN[0] > validation_loss_no_epoch[0] and (np.abs(gan_eval.best_loss_no_GAN[1]-0.5) > np.abs(validation_loss_no_epoch[1] - 0.5)):
                 gan_eval.best_loss_no_GAN = validation_loss_no_epoch
                 gan_eval.best_epoch_no_GAN = epoch
 

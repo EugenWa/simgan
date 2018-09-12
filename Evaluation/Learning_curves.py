@@ -28,7 +28,7 @@ colors_no       = ['orange',            'darkorange',   'gold',     'lawngreen',
 img_line_styles     = ['-', ':', '-.', '--']
 img_markers         = ['o', 'x']
 
-
+SAVE_PATH = None
 
 def load_validation_data_VAE(path_to_validations):
     # read all the paths
@@ -76,7 +76,7 @@ def Read_VAE_history(history_path):
 
 ##################################################################################################################
 
-def Read_GAN_history(history_path):
+def Read_GAN_history(history_path, dataframe_mode=0):
     history_id_path  = history_path + '/ID_LOSS_GAN'
     history_ges_path = history_path + '/GES_LOSS_GAN'
 
@@ -101,8 +101,8 @@ def Read_GAN_history(history_path):
     # ges
     loss_ges_ges = [l[0] for l in history_ges['loss']]
     loss_ges_gen = [l[1] for l in history_ges['loss']]
-    loss_ges_fet = [l[2] for l in history_ges['loss']]
-    loss_ges_disc = [l[3] for l in history_ges['loss']]
+    #loss_ges_fet = [l[2] for l in history_ges['loss']]
+    loss_ges_disc = [l[2] for l in history_ges['loss']]
 
     val_loss_ges_gen = [l[0] for l in history_ges['val_loss']]
     val_loss_ges_disc = [l[1] for l in history_ges['val_loss']]
@@ -121,14 +121,14 @@ def Read_GAN_history(history_path):
 
 
 
-    generall_loss       = create_GAN_pd_data_frames_GESLOSS(loss_id_ges, loss_ges_ges)
-    generator_loss      = create_GAN_pd_data_frames_GENLOSS(loss_id_gen, loss_ges_gen, val_loss_id_gen, val_loss_ges_gen)
-    discriminator_loss  = create_GAN_pd_data_frames_DISCLOSS(loss_id_disc, loss_ges_disc, val_loss_id_disc, val_loss_ges_disc)
-    discriminator_acc   = create_GAN_pd_data_frames_DISCACC(val_loss_id_discACC, val_loss_ges_discACC)
+    generall_loss       = create_GAN_pd_data_frames_GESLOSS(loss_id_ges, loss_ges_ges, dataframe_mode)
+    generator_loss      = create_GAN_pd_data_frames_GENLOSS(loss_id_gen, loss_ges_gen, val_loss_id_gen, val_loss_ges_gen, dataframe_mode)
+    discriminator_loss  = create_GAN_pd_data_frames_DISCLOSS(loss_id_disc, loss_ges_disc, val_loss_id_disc, val_loss_ges_disc, dataframe_mode)
+    discriminator_acc   = create_GAN_pd_data_frames_DISCACC(val_loss_id_discACC, val_loss_ges_discACC, dataframe_mode)
 
     return generall_loss, generator_loss, discriminator_loss, discriminator_acc
 
-def create_GAN_pd_data_frames_GESLOSS(loss_id_ges, loss_ges_ges, mode=1):
+def create_GAN_pd_data_frames_GESLOSS(loss_id_ges, loss_ges_ges, mode=0):
     if mode is 0:
         pol1 = 0
         pol2 = 1
@@ -140,7 +140,7 @@ def create_GAN_pd_data_frames_GESLOSS(loss_id_ges, loss_ges_ges, mode=1):
 
     return df_ges_losses_id, df_ges_losses_ges
 
-def create_GAN_pd_data_frames_GENLOSS(loss_id_gen, loss_ges_gen, val_loss_id_gen, val_loss_ges_gen, mode=1):
+def create_GAN_pd_data_frames_GENLOSS(loss_id_gen, loss_ges_gen, val_loss_id_gen, val_loss_ges_gen, mode=0):
     if mode is 0:
         pol1 = 0
         pol2 = 1
@@ -155,7 +155,7 @@ def create_GAN_pd_data_frames_GENLOSS(loss_id_gen, loss_ges_gen, val_loss_id_gen
 
     return df_gen_losses_id, df_gen_losses_ges, df_gen_val_losses_id, df_gen_val_losses_ges
 
-def create_GAN_pd_data_frames_DISCLOSS(loss_id_disc, loss_ges_disc, val_loss_id_disc, val_loss_ges_disc, mode=1):
+def create_GAN_pd_data_frames_DISCLOSS(loss_id_disc, loss_ges_disc, val_loss_id_disc, val_loss_ges_disc, mode=0):
     if mode is 0:
         pol1 = 0
         pol2 = 1
@@ -170,14 +170,20 @@ def create_GAN_pd_data_frames_DISCLOSS(loss_id_disc, loss_ges_disc, val_loss_id_
 
     return df_disc_losses_id, df_disc_losses_ges, df_disc_val_losses_id, df_disc_val_losses_ges
 
-def create_GAN_pd_data_frames_DISCACC(val_loss_id_discACC, val_loss_ges_discACC):
+def create_GAN_pd_data_frames_DISCACC(val_loss_id_discACC, val_loss_ges_discACC, mode=0):
+    if mode is 0:
+        pol1 = 0
+        pol2 = 1
+    else:
+        pol1 = -1
+        pol2 = 0
     df_disc_acc_id    = pd.DataFrame({'epoch':range(0, len(val_loss_id_discACC)), 'DISC-Acc ID':val_loss_id_discACC})
-    df_disc_acc_ges   = pd.DataFrame({'epoch': range(len(val_loss_id_discACC) - len(val_loss_ges_discACC), len(val_loss_id_discACC)), 'DISC-Acc NO': val_loss_ges_discACC})
+    df_disc_acc_ges   = pd.DataFrame({'epoch': range(len(val_loss_id_discACC) + pol1*len(val_loss_ges_discACC), len(val_loss_id_discACC) + pol2*len(val_loss_ges_discACC)), 'DISC-Acc NO': val_loss_ges_discACC})
 
     return df_disc_acc_id, df_disc_acc_ges
 
 
-def Plot_pandas_data_normal(dataframe_1, dataframe_2, name_tags, color_pallet_1, color_pallet_2, title, Loss_type='MAE-Loss'):
+def Plot_pandas_data_normal(dataframe_1, dataframe_2, name_tags, color_pallet_1, color_pallet_2, title, fig_title, Loss_type='MAE-Loss'):
     fig = plt.figure()
     plt.suptitle(title)
     plt.plot(name_tags[0], name_tags[1],     data=dataframe_1, linestyle=color_pallet_1[0], marker=color_pallet_1[1], color=color_pallet_1[3], alpha=color_pallet_1[2])
@@ -186,9 +192,11 @@ def Plot_pandas_data_normal(dataframe_1, dataframe_2, name_tags, color_pallet_1,
     plt.ylabel(Loss_type)
     plt.legend()
 
+    fig.savefig(SAVE_PATH + '/' + fig_title)
+
 
 def Plot_Train_and_validation(dataframe_1, dataframe_2, dataframe_1_val, dataframe_2_val, name_tags_1, name_tags_2,
-                         color_pallet_1, color_pallet_2, titles=['Loss history', 'Validation-Loss history'], Loss_type='MAE-Loss'):
+                         color_pallet_1, color_pallet_2, fig_title, titles=['Loss history', 'Validation-Loss history'], Loss_type='MAE-Loss'):
     fig = plt.figure(figsize=(10, 5))
     ax1  = plt.subplot(121)
     ax1.set_title(titles[0])
@@ -207,6 +215,32 @@ def Plot_Train_and_validation(dataframe_1, dataframe_2, dataframe_1_val, datafra
     plt.ylabel(Loss_type)
     plt.legend()
     plt.legend()
+
+    fig.savefig(SAVE_PATH + '/' + fig_title)
+
+
+def Plot_Discloss(dataframe_1, dataframe_2, dataframe_1_val, dataframe_2_val, name_tags_1, name_tags_2,
+                         color_pallet_1, color_pallet_2, fig_title, titles=['DISC-Loss history', 'DISC-Validation-Loss history'], Loss_type='MAE-Loss'):
+    fig = plt.figure(figsize=(10, 5))
+    ax1  = plt.subplot(121)
+    ax1.set_title(titles[0])
+    plt.plot(name_tags_1[0], name_tags_1[1], data=dataframe_1, linestyle=color_pallet_1[0], marker=color_pallet_1[1], color=color_pallet_1[3], alpha=color_pallet_1[2])
+    plt.plot(name_tags_1[0], name_tags_1[2], data=dataframe_2, linestyle=color_pallet_2[0], marker=color_pallet_2[1], color=color_pallet_2[3], alpha=color_pallet_2[2])
+    plt.xlabel(name_tags_1[0])
+    plt.ylabel(Loss_type)
+    plt.legend()
+    plt.legend()
+
+    ax2 = plt.subplot(122)
+    ax2.set_title(titles[1])
+    ax2.plot(name_tags_2[0], name_tags_2[1], data=dataframe_1_val, linestyle=color_pallet_1[0], marker=color_pallet_1[1],color=color_pallet_1[3], alpha=color_pallet_1[2])
+    plt.plot(name_tags_2[0], name_tags_2[2], data=dataframe_2_val, linestyle=color_pallet_2[0], marker=color_pallet_2[1],color=color_pallet_2[3], alpha=color_pallet_2[2])
+    plt.xlabel(name_tags_2[0])
+    plt.ylabel(Loss_type)
+    plt.legend()
+    plt.legend()
+
+    fig.savefig(SAVE_PATH  + '/' + fig_title)
 
 
 
@@ -238,33 +272,51 @@ if __name__=='__main__':
     model_names = []
     model_training_history = []
     for model in Models_to_compare:
-        model_names.append(path_leaf(model))
+        model_names.append([path_leaf(model), model])
         folders = glob(model + '/*')
         history_folder = [v for v in folders if v.__contains__('History')][0]
-        if model_to_analyze is 'VAE':
-            model_training_history.append(Read_VAE_history(history_folder))
-        elif model_to_analyze is 'GAN':
-            model_training_history.append(Read_GAN_history(history_folder))
+        try:
+            if model_to_analyze is 'VAE':
+                model_training_history.append(Read_VAE_history(history_folder))
+            elif model_to_analyze is 'GAN':
+                model_training_history.append(Read_GAN_history(history_folder))
+        except(Exception):
+            model_names.pop()
 
     if model_to_analyze is 'GAN':
-        model_id = 0
-        print(model_names[model_id])
-        dframes_ges = model_training_history[model_id][0]
-        dframes_gen = model_training_history[model_id][1]
-
-        name_tags_ges_loss = ['epoch', 'GES-Loss ID', 'GES-Loss NO']
-        name_tags_gen_loss1 = ['epoch', 'GENERATOR-Loss ID', 'GENERATOR-Loss NO']
-        name_tags_gen_loss2 = ['epoch', 'GENERATOR-ValLoss ID', 'GENERATOR-ValLoss NO']
-
-        color_Set = 0
-        collor_pallet_1 = [img_line_styles[0], img_markers[0], 0.8, colors_id[color_Set]]
-        collor_pallet_2 = [img_line_styles[0], img_markers[0], 0.8, colors_no[color_Set]]
+        for model_id in range(len(model_names)):
+            #model_id = 2
+            fig_title = model_names[model_id][0]
+            SAVE_PATH = model_names[model_id][1]
+            print(fig_title)
+            dframes_ges = model_training_history[model_id][0]
+            dframes_gen = model_training_history[model_id][1]
+            dframes_discloss = model_training_history[model_id][2]
+            dframes_discACCs = model_training_history[model_id][3]
 
 
-        Plot_pandas_data_normal(dframes_ges[0], dframes_ges[1], name_tags_ges_loss, collor_pallet_1, collor_pallet_2, 'Ges-Loss-Test')
+            # axes:
+            name_tags_ges_loss      = ['epoch', 'GES-Loss ID', 'GES-Loss NO']
+
+            name_tags_gen_loss1     = ['epoch', 'GENERATOR-Loss ID', 'GENERATOR-Loss NO']
+            name_tags_gen_loss2     = ['epoch', 'GENERATOR-ValLoss ID', 'GENERATOR-ValLoss NO']
+
+            name_tags_disc_loss1    = ['epoch', 'DISCRIMINATOR-Loss ID', 'DISCRIMINATOR-Loss NO']
+            name_tags_disc_loss2    = ['epoch', 'DISCRIMINATOR-ValLoss ID', 'DISCRIMINATOR-ValLoss NO']
+
+            name_tags_disc_acc      = ['epoch', 'DISC-Acc ID', 'DISC-Acc NO']
+
+            # coloring
+            color_Set = 2
+            collor_pallet_1 = [img_line_styles[0], img_markers[0], 0.8, colors_id[color_Set]]
+            collor_pallet_2 = [img_line_styles[0], img_markers[0], 0.8, colors_no[color_Set]]
 
 
-        Plot_Train_and_validation(dframes_gen[0], dframes_gen[1], dframes_gen[2], dframes_gen[3], name_tags_gen_loss1, name_tags_gen_loss2, collor_pallet_1, collor_pallet_2)
+            # actual plotting
+            Plot_pandas_data_normal(dframes_ges[0], dframes_ges[1], name_tags_ges_loss, collor_pallet_1, collor_pallet_2, fig_title + 'GES', 'Ges-Loss-Test')
+            Plot_Train_and_validation(dframes_gen[0], dframes_gen[1], dframes_gen[2], dframes_gen[3], name_tags_gen_loss1, name_tags_gen_loss2, collor_pallet_1, collor_pallet_2, fig_title + 'TLOSSVAL')
+            Plot_Discloss(dframes_discloss[0], dframes_discloss[1], dframes_discloss[2], dframes_discloss[3], name_tags_disc_loss1, name_tags_disc_loss2, collor_pallet_1, collor_pallet_2, fig_title + 'DISCLOSS')
+            Plot_pandas_data_normal(dframes_discACCs[0], dframes_discACCs[1], name_tags_disc_acc, collor_pallet_1, collor_pallet_2, fig_title + 'DISC_ACC', 'Discriminator-Accuracy')
 
     plt.show()
 

@@ -476,7 +476,7 @@ class GAN_evaluation(Evaluation):
 
 
 
-    def dump_training_history_ID(self):
+    def dump_training_history_ID(self, save_ges=True):
         # create a dictionarry to simplify
         loss_history_ID = dict()
         loss_history_NO = dict()
@@ -492,8 +492,9 @@ class GAN_evaluation(Evaluation):
             pickle.dump(loss_history_ID, fp)
         with open(self.training_history_dir + '/NO_LOSS', "wb") as fp:
             pickle.dump(loss_history_NO, fp)
-        with open(self.training_history_dir + '/GES_LOSS', "wb") as fp:
-            pickle.dump(self.ges_loss_epoch, fp)
+        if save_ges:
+            with open(self.training_history_dir + '/GES_LOSS', "wb") as fp:
+                pickle.dump(self.ges_loss_epoch, fp)
 
     def q_vae_save_model_NO(self, validation_loss_no_epoch, epoch):
         if self.best_loss_no > validation_loss_no_epoch:
@@ -552,10 +553,10 @@ class GAN_evaluation(Evaluation):
             for p_i in range(patch_data[0]):
                 disc_predctions.append(discriminator(prediction[np.newaxis, p_i*patch_data[1]:(p_i+1)*patch_data[1], :]))
             disc_pred = np.mean(disc_predctions)
-            disc_loss = np.mean(np.square(np.ones((1,)) - disc_pred))            # abstand zum correct predictetem label
+            disc_loss = np.mean(np.abs(0 - disc_pred))            # abstand zum correct predictetem label, gt is 0
 
             #print('Discriminator pred: ',np.mean(disc_pred))
-            if np.mean(disc_pred) < 0.5:
+            if disc_pred < 0.5:
                 correct_disc_predictions += 1
 
             # store the 5 best and worst outcomes
