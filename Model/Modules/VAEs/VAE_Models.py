@@ -13,7 +13,7 @@ import numpy as np
 
 
 class Basic_VAE:
-    def __init__(self, vae_name, img_shape, cfg, id='', path=None):
+    def __init__(self, vae_name, img_shape, cfg, vid='', path=None):
         self.name = vae_name
         self.optimizers={'adam':keras.optimizers.adam}
 
@@ -21,19 +21,19 @@ class Basic_VAE:
             vae_input_id = Input(shape=img_shape)
             vae_input_no = Input(shape=img_shape)
 
-            lr          = cfg['VAE' + id]['LEARNING_RATE']
-            lr_decay    = cfg['VAE' + id]['LR_DEF']
-            relu_param  = cfg['VAE' + id]['RELU_PARAM']
-            optimizer   = self.optimizers[cfg['VAE' + id]['OPTIMIZER']]
-            use_drop_out            = cfg['VAE' + id]['USE_DROP_OUT']
-            use_batch_normalisation = cfg['VAE' + id]['USE_BATCH_NORM']
-            trafo_layers            = cfg['VAE' + id]['TRAFO_LAYERS']
-            filters     = cfg['VAE' + id]['FILTERS']
+            lr          = cfg['VAE' + vid]['LEARNING_RATE']
+            lr_decay    = cfg['VAE' + vid]['LR_DEF']
+            relu_param  = cfg['VAE' + vid]['RELU_PARAM']
+            optimizer   = self.optimizers[cfg['VAE' + vid]['OPTIMIZER']]
+            use_drop_out            = cfg['VAE' + vid]['USE_DROP_OUT']
+            use_batch_normalisation = cfg['VAE' + vid]['USE_BATCH_NORM']
+            trafo_layers            = cfg['VAE' + vid]['TRAFO_LAYERS']
+            filters     = cfg['VAE' + vid]['FILTERS']
             filters_rev = list(reversed(filters))
             feature_inp = Input(shape=(img_shape[0]/(2**len(filters)), img_shape[1]/(2**len(filters)), filters[-1]))
 
 
-            # -- VAE Model ID ---
+            # -- VAE Model vid ---
             encoder_ID_features = build_encoder_basic(vae_input_id, filters, relu_param, use_batch_normalisation, use_drop_out)
             decoder_ID_out      = build_decoder_basic(feature_inp, filters_rev, relu_param, use_batch_normalisation, use_drop_out)
             self.decoder_optimizer  = optimizer(lr, lr_decay)
@@ -41,7 +41,7 @@ class Basic_VAE:
 
             print('Decoder Layout: ')
             self.Decoder.summary()
-            self.Decoder.compile(optimizer=self.decoder_optimizer, loss=cfg['VAE' + id]['DECODER_LOSS'])
+            self.Decoder.compile(optimizer=self.decoder_optimizer, loss=cfg['VAE' + vid]['DECODER_LOSS'])
 
             # build vae_id encoder:
             vae__out_id = self.Decoder(encoder_ID_features)
@@ -51,8 +51,8 @@ class Basic_VAE:
 
             print('VAE-ID Layout: ')
             self.VAE_ID.summary()
-            self.VAE_ID_MultiOut.compile(optimizer=self.vae_id_optimizer, loss=[cfg['VAE' + id]['IMAGE_LOSS'], None], loss_weights=[1, None])
-            self.VAE_ID.compile(optimizer=self.vae_id_optimizer, loss=cfg['VAE' + id]['IMAGE_LOSS'])
+            self.VAE_ID_MultiOut.compile(optimizer=self.vae_id_optimizer, loss=[cfg['VAE' + vid]['IMAGE_LOSS'], None], loss_weights=[1, None])
+            self.VAE_ID.compile(optimizer=self.vae_id_optimizer, loss=cfg['VAE' + vid]['IMAGE_LOSS'])
 
             # freeze the decoder in the domain A->B setting hence it should learn to reconstruct the features
             self.Decoder.trainable=False
@@ -67,16 +67,16 @@ class Basic_VAE:
 
             print('VAE-NO Layout: ')
             self.VAE_NO.summary()
-            self.VAE_NO.compile(optimizer=self.vae_no_optimizer, loss=[cfg['VAE' + id]['IMAGE_LOSS'], cfg['VAE' + id]['FEATURE_LOSS']], loss_weights=cfg['VAE' + id]['LOSS_WEIGHTS'])
-            self.VAE_NO_MulitOut.compile(optimizer=self.vae_no_optimizer, loss=[cfg['VAE' + id]['IMAGE_LOSS'], cfg['VAE' + id]['FEATURE_LOSS'], None], loss_weights=[1, 1, None])
+            self.VAE_NO.compile(optimizer=self.vae_no_optimizer, loss=[cfg['VAE' + vid]['IMAGE_LOSS'], cfg['VAE' + vid]['FEATURE_LOSS']], loss_weights=cfg['VAE' + vid]['LOSS_WEIGHTS'])
+            self.VAE_NO_MulitOut.compile(optimizer=self.vae_no_optimizer, loss=[cfg['VAE' + vid]['IMAGE_LOSS'], cfg['VAE' + vid]['FEATURE_LOSS'], None], loss_weights=[1, 1, None])
             # lossweights unimportant hence this moel wont be trained
         else:
             self.load_Model(path)
 
 
-    def train_model_on_batch(self, xA_Batch, xB_Batch, ID_ONLY=False):
+    def train_model_on_batch(self, xA_Batch, xB_Batch, vid_ONLY=False):
         loss_id = self.VAE_ID.train_on_batch([xB_Batch], [xB_Batch])
-        if ID_ONLY:
+        if vid_ONLY:
             return loss_id, loss_id, None
         # predict features
         _, features = self.VAE_ID_MultiOut.predict(xB_Batch)

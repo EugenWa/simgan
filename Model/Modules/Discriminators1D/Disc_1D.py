@@ -49,18 +49,78 @@ def discriminator_build_4conv_oneD(disc_input, relu_param=0.3, use_batch_normali
     disc_out = Dense(1, activation='sigmoid')(dn_1)
     return disc_out
 
+def small_disc_1D(disc_input, relu_param=0.3, use_batch_normalisation=True, use_dropout=False):
+    if use_batch_normalisation:
+        disc_input = BatchNormalization()(disc_input)
+
+    # convolve the input
+    c_1 = Conv1D(18, kernel_size=3, strides=1, padding='same', use_bias=True)(disc_input)
+    c_1 = LeakyReLU(relu_param)(c_1)
+    c_1 = MaxPooling1D()(c_1)
+
+    if use_batch_normalisation:
+        c_2 = BatchNormalization()(c_1)
+
+
+    feature_vec = Flatten()(c_2)
+    dn_1 = Dense(20)(feature_vec)
+    dn_1 = LeakyReLU(relu_param)(dn_1)
+
+    dn_1 = Dense(20)(dn_1)
+    dn_1 = LeakyReLU(relu_param)(dn_1)
+
+    disc_out = Dense(1, activation='sigmoid')(dn_1)
+    return disc_out
+
+def disc_1D_full_dense(disc_input, relu_param=0.3, use_batch_normalisation=True, use_dropout=False):
+    if use_batch_normalisation:
+        disc_input = BatchNormalization()(disc_input)
+
+    feature_vec = Flatten()(disc_input)
+    dn_1 = Dense(30)(feature_vec)
+    dn_1 = LeakyReLU(relu_param)(dn_1)
+
+    dn_1 = Dense(30)(dn_1)
+    dn_1 = LeakyReLU(relu_param)(dn_1)
+
+    dn_1 = Dense(30)(dn_1)
+    dn_1 = LeakyReLU(relu_param)(dn_1)
+
+    dn_1 = Dense(10)(dn_1)
+    dn_1 = LeakyReLU(relu_param)(dn_1)
+
+    disc_out = Dense(1, activation='sigmoid')(dn_1)
+    return disc_out
 
 if __name__=='__main__':
     import sys
     sys.path.insert(0, '../../../')
     from Datamanager.OneD_Data_Creator import OneD_Data_Loader
 
-    Data_loader = OneD_Data_Loader('fktsteps')
+    Data_loader = OneD_Data_Loader('Sqrs')
     # load Data ---------------------------------------------------------
     validation_split = 0.85
 
+    lenss = 16
     xA_train = Data_loader.load_A()
     xB_train = Data_loader.load_B('B1')
+    feats = Data_loader.load_A_Feat()
+
+    xa_train_new = np.zeros((xA_train.shape[0], lenss, 1))
+    xb_train_new = np.zeros((xA_train.shape[0], lenss, 1))
+
+    for i in range(xA_train.shape[0]):
+        xa_train_new[i, :, :] = xA_train[i, int(feats[i, 0,0]-8):int(feats[i, 0, 0]+8), :]
+        xb_train_new[i, :, :] = xB_train[i, int(feats[i, 0,0]-8):int(feats[i, 0, 0]+8), :]
+
+    xA_train = xa_train_new
+    xB_train = xb_train_new
+
+    print(xA_train.shape)
+    print(xA_train[0, :, 0])
+    print(xB_train[0, :, 0])
+
+
     xA_test = xA_train[0:int(xA_train.shape[0] * 0.1)]
     xB_test = xB_train[0:int(xB_train.shape[0] * 0.1)]
 
@@ -71,12 +131,13 @@ if __name__=='__main__':
     xB_test = xB_test[int(xB_test.shape[0] * validation_split):]
     # /load Data --------------------------------------------------------
 
-    inp = Input(shape=xA_train[0].shape)
-    d = discriminator_build_4conv_oneD(inp, 0.3, True, True)
+    inp = Input(shape=(lenss, 1))#(int(xA_train[0].shape[0]/128), xA_train[0].shape[1]))
+    d = disc_1D_full_dense(inp, 0.3, True, True)
     m = Model(inp, d, name='tst_disc_one_D')
     m.summary()
     m.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
+    exit()
 
     all_data = np.zeros((xA_train.shape[0]+xB_train.shape[0], xA_train.shape[1], xA_train.shape[2]))
     all_data[0:xA_train.shape[0]] = xA_train

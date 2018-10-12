@@ -5,17 +5,17 @@ from keras.layers import BatchNormalization, Conv2D, Input, Conv2DTranspose, Lea
 from keras.models import Model, load_model
 import numpy as np
 
-def discriminator_build_4conv(disc_input, use_batch_normalisation=True, use_dropout=False):
+def discriminator_build_4conv(disc_input, relu_param=0.3, use_batch_normalisation=True, use_dropout=False):
     if use_batch_normalisation:
         disc_input = BatchNormalization()(disc_input)
 
     # convolve the input
     c_1 = Conv2D(3, kernel_size=(5, 5), strides=(1, 1), padding='same', use_bias=False)(disc_input)
-    c_1 = LeakyReLU(0.2)(c_1)
+    c_1 = LeakyReLU(relu_param)(c_1)
     c_1 = MaxPooling2D()(c_1)
 
     c_2 = Conv2D(9, kernel_size=(3, 3), strides=(1, 1), padding='same')(c_1)
-    c_2 = LeakyReLU(0.2)(c_2)
+    c_2 = LeakyReLU(relu_param)(c_2)
     c_2 = MaxPooling2D()(c_2)
     if use_dropout:
         c_2 = Dropout(0.2)(c_2)
@@ -24,7 +24,7 @@ def discriminator_build_4conv(disc_input, use_batch_normalisation=True, use_drop
 
 
     c_3 = Conv2D(15, kernel_size=(3, 3), strides=(1, 1), padding='same')(c_2)
-    c_3 = LeakyReLU(0.2)(c_3)
+    c_3 = LeakyReLU(relu_param)(c_3)
     c_3 = MaxPooling2D()(c_3)
     if use_dropout:
         c_3 = Dropout(0.2)(c_3)
@@ -32,16 +32,20 @@ def discriminator_build_4conv(disc_input, use_batch_normalisation=True, use_drop
         c_3 = BatchNormalization()(c_3)
 
     c_4 = Conv2D(21, kernel_size=(3, 3), strides=(1, 1), padding='same')(c_3)
-    c_4 = LeakyReLU(0.2)(c_4)
+    c_4 = LeakyReLU(relu_param)(c_4)
     c_4 = MaxPooling2D()(c_4)
     if use_dropout:
         c_4 = Dropout(0.2)(c_4)
     if use_batch_normalisation:
         c_4 = BatchNormalization()(c_4)
 
+    c_4 = Conv2D(1, kernel_size=(3, 3), strides=(1, 1), padding='same')(c_4)
+    c_4 = LeakyReLU(relu_param)(c_4)
+    c_4 = MaxPooling2D()(c_4)
+
     feature_vec = Flatten()(c_4)
     dn_1 = Dense(20)(feature_vec)
-    dn_1 = LeakyReLU(0.2)(dn_1)
+    dn_1 = LeakyReLU(relu_param)(dn_1)
 
     disc_out = Dense(1, activation='sigmoid')(dn_1)
     return disc_out
