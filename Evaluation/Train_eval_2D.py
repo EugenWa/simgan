@@ -49,7 +49,7 @@ class Evaluation:
         obj attribute to diversify path names if necessary, for instance if ID-mapping and Domain-mapping
         are supposed to be sampled and differentiated
     '''
-    def sample_best_model_output(self, xA_test, xB_test, gen_A_B, gen_name, obj='', additional_subdirectory='', amount=10):
+    def sample_best_model_output(self, xA_test, xB_test, gen_A_B, gen_name, obj='', additional_subdirectory='', amount=3):
         function_choice = random.sample(range(xA_test.shape[0]), amount)        # so that samples are different
 
         # choose source samples

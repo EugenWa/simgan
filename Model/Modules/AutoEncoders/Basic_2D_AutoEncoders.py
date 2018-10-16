@@ -30,10 +30,6 @@ class Basic_nRES_AE_2D:
         trafo_layers            = cfg['VAE']['TRAFO_LAYERS']
         filters                 = cfg['VAE']['FILTERS']
         metric_2_be_used        = cfg['METRIC']
-        classify_mode           = cfg['FEATURE_CLASSIFY']
-        CLASSIF_FILTERS         = cfg['VAE']['CLASSIF_FILTERS']
-        CLASSIF_DENSES          = cfg['VAE']['CLASSIF_DENSES']
-        CLASSIF_LOSS            = cfg['VAE']['CLASSIF_LOSS']
 
 
         inp = Input(img_shape)

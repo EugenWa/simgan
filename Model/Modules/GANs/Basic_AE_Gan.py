@@ -77,8 +77,9 @@ class Basic_AE_Gan:
         self.GAN_optimizer = self.optimizers[cfg_gan['FULL_MODEL']['OPTIMIZER']](cfg_gan['FULL_MODEL']['LEARNING_RATE'], cfg_gan['FULL_MODEL']['LR_DEF'])
 
         if self.unsupervised:
+            print("unsupervised was compiled")
             self.GAN = Model(inputs=[full_model_inp], outputs=[disc_eval], name=gan_name)
-            self.GAN.compile(optimizer=self.GAN_optimizer, loss=cfg_gan['FULL_MODEL']['DISC_LOSS'], loss_weights=cfg_gan['FULL_MODEL']['LOSS_WEIGHTS'])
+            self.GAN.compile(optimizer=self.GAN_optimizer, loss=cfg_gan['FULL_MODEL']['DISC_LOSS'])
         else:
             self.GAN = Model(inputs=[full_model_inp], outputs=[trafo, disc_eval], name=gan_name)
             self.GAN.compile(optimizer=self.GAN_optimizer, loss=[cfg_gan['FULL_MODEL']['IMG_LOSS'], cfg_gan['FULL_MODEL']['DISC_LOSS']], loss_weights=cfg_gan['FULL_MODEL']['LOSS_WEIGHTS'])

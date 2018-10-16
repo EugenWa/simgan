@@ -18,9 +18,9 @@ class Evaluation_Vis:
     def __init__(self, Evaluation_Result_Location, Modelname, Type, evaluation_loss_mode=0, use_eval_results_dir=True):
         # - file path info -
         self.Model_name = Modelname
-        self.test_path = Modelname + ' Evaluation12'
+        self.test_path = Modelname + ' Evaluation2D'
         if use_eval_results_dir:
-            self.test_path = Evaluation_Result_Location + Type + '/' + self.test_path
+            self.test_path = Evaluation_Result_Location + Type + '/' + self.test_path  # '../../Evaluation Results/'
 
 
         # append useful directories

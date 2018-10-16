@@ -63,13 +63,14 @@ class Basic_AE_Gan_Critic:
             return keras.backend.mean(y_true * y_pred)
 
         self.discriminator.compile(optimizer=self.disc_optimizer, loss=wasserstein_loss, metrics=['accuracy'])
-        self.discriminator.trainable = False        # freeze discriminator
+
 
 
 
         # --- Build Full Model ---
         full_model_inp = Input(shape=img_shape)
         trafo = self.AE_Model.Call()(full_model_inp)
+        self.discriminator.trainable = False  # freeze discriminator
         disc_patch_eval = []
         for p_i in range(self.patch_length_width):
             disc_patch_eval.append(self.discriminator(Lambda(lambda x: x[:, p_i * self.patch_width:(p_i + 1) * self.patch_width, :])(trafo)))

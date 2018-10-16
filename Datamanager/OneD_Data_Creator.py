@@ -504,7 +504,7 @@ class OneD_Data_Loader:
 if __name__=='__main__':
     data_set_name = sys.argv[1]#
     mode          = int(sys.argv[2])
-    dataset_length = 12#000
+    dataset_length = 8000
     # generate Data_set
     Datasetpath = os.path.dirname(os.path.abspath(__file__))
     Datasetpath = Datasetpath[0:-(len("Datamanager") + 1)]
@@ -516,7 +516,7 @@ if __name__=='__main__':
 
 
     interval = np.pi * 2
-    s_length = 2**10
+    s_length = 2**9
     Dol = Data_Generator_1D(interval, s_length)
     print(Dol.interval_length)
     config = np.array([dataset_length, interval, Dol.interval_length])
@@ -538,7 +538,7 @@ if __name__=='__main__':
     sqrs_len_dist   = Dol.unit_step_idx_lenght_max - sqrs_len_middle
 
     sqrs_sigma = (sqrs_len_dist * 2) / 9
-    sqrs_len_middle += sqrs_sigma*(3/2)
+    sqrs_len_middle -= sqrs_sigma*(3/2)
     sqrs_len_mean = sqrs_len_middle
 
     # --- slopes ---
